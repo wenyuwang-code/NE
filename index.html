@@ -3,43 +3,43 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>小笨腦記不住NE</title>
+    <title>Neurology NE & NIHSS Master</title>
     <style>
-        body { font-family: 'Consolas', 'Monaco', monospace; background: #f0f2f5; color: #333; margin: 0; padding-bottom: 120px; }
+        body { font-family: 'Consolas', 'Monaco', monospace; background: #f4f7f6; color: #333; margin: 0; padding-bottom: 120px; }
         .header { background: #2c3e50; padding: 10px; position: sticky; top: 0; z-index: 1000; box-shadow: 0 2px 5px rgba(0,0,0,0.2); }
-        .menu { display: flex; flex-wrap: wrap; gap: 5px; justify-content: center; }
+        .menu { display: flex; flex-wrap: wrap; gap: 4px; justify-content: center; }
         .menu button { padding: 8px 12px; font-size: 13px; border: none; background: #34495e; color: white; border-radius: 4px; cursor: pointer; }
         .menu button.active { background: #3498db; font-weight: bold; }
         .menu button.export-btn { background: #27ae60; font-weight: bold; }
 
-        .container { padding: 15px; max-width: 850px; margin: auto; background: white; min-height: 100vh; }
-        .section-title { background: #ecf0f1; padding: 8px; font-weight: bold; border-left: 5px solid #2c3e50; margin: 20px 0 10px; font-size: 1.2rem; }
-        .sub-group { border: 1px solid #eee; padding: 10px; margin-bottom: 10px; border-radius: 5px; }
+        .container { padding: 15px; max-width: 800px; margin: auto; background: white; min-height: 100vh; }
+        .section-title { background: #ecf0f1; padding: 10px; font-weight: bold; border-left: 6px solid #2c3e50; margin: 20px 0 10px; font-size: 1.1rem; color: #2c3e50; }
+        .sub-title { font-weight: bold; color: #d32f2f; margin: 15px 0 5px; font-size: 0.9rem; text-transform: uppercase; border-bottom: 1px solid #eee; }
         
         .row { display: flex; align-items: center; padding: 8px 0; border-bottom: 1px dashed #eee; }
-        .label { flex: 2; font-weight: 600; font-size: 0.95rem; }
-        .input-area { flex: 3; display: flex; gap: 10px; align-items: center; }
+        .label { flex: 2; font-weight: 600; font-size: 0.9rem; }
+        .input-area { flex: 3; display: flex; gap: 5px; align-items: center; flex-wrap: wrap; }
         
-        input[type="text"], select { padding: 6px; border: 1px solid #ccc; border-radius: 4px; font-size: 0.9rem; }
-        input[type="text"] { width: 100%; }
-        select { background: #fff; }
-
-        .footer-bar { position: fixed; bottom: 0; width: 100%; background: white; border-top: 3px solid #2c3e50; padding: 15px; text-align: center; box-shadow: 0 -2px 10px rgba(0,0,0,0.1); }
-        #export-area { width: 100%; height: 500px; font-size: 12px; white-space: pre; border: 1px solid #000; padding: 10px; background: #f9f9f9; }
+        input[type="text"], select { padding: 6px; border: 1px solid #ccc; border-radius: 4px; font-size: 0.9rem; width: 100%; box-sizing: border-box; }
+        
+        .footer-bar { position: fixed; bottom: 0; width: 100%; background: white; border-top: 4px solid #2c3e50; padding: 10px; text-align: center; box-shadow: 0 -2px 10px rgba(0,0,0,0.1); z-index: 999; }
+        #export-area { width: 100%; height: 500px; font-family: 'Consolas', monospace; font-size: 12px; padding: 10px; border: 2px solid #333; background: #fafafa; line-height: 1.4; }
         .hidden { display: none; }
-        .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+        
+        .mp-grid { display: grid; grid-template-columns: 1.5fr 1fr; gap: 5px; align-items: center; padding: 5px 0; border-bottom: 1px solid #f9f9f9; }
     </style>
 </head>
 <body>
 
 <div class="header">
     <div class="menu">
-        <button onclick="show('cn')" id="b-cn">Cranial Nerve</button>
+        <button onclick="show('nihss')" id="b-nihss">NIHSS</button>
+        <button onclick="show('cn')" id="b-cn">CN (I-XII)</button>
         <button onclick="show('motor')" id="b-motor">Motor/Tone</button>
-        <button onclick="show('mp')" id="b-mp">Muscle Power</button>
+        <button onclick="show('mp')" id="b-mp">MP (R/L)</button>
         <button onclick="show('reflex')" id="b-reflex">Reflex</button>
         <button onclick="show('sensory')" id="b-sensory">Sensory</button>
-        <button onclick="show('eps')" id="b-eps">EPS/Coord</button>
+        <button onclick="show('eps')" id="b-eps">EPS/Gait</button>
         <button onclick="show('updrs')" id="b-updrs">UPDRS</button>
         <button onclick="show('cognition')" id="b-cognition">Cognition</button>
         <button onclick="exportData()" class="export-btn">GENERATE NOTE</button>
@@ -47,194 +47,167 @@
 </div>
 
 <div class="container">
-    <div style="margin-bottom: 20px;">
-        <strong>Consciousness:</strong> 
-        <input type="text" id="v-consciousness" value="clear" style="width: 150px;">
+    <div id="s-nihss" class="sec">
+        <div class="section-title">NIHSS 腦中風量表評分</div>
+        <div id="nihss-box"></div>
     </div>
 
-    <div id="s-cn" class="sec">
-        <div class="section-title">Cranial Nerves (I - XII)</div>
+    <div id="s-cn" class="sec hidden">
+        <div class="section-title">Cranial Nerves</div>
         <div class="row"><div class="label">CN I (Smell)</div><input type="text" id="v-cn1" value="smell, not performed, anosmia(-), hyposmia(-), hyperosmia(-), olfactory agnosia(-)"></div>
-        <div class="sub-group">
-            <div class="label">CN II (Visual)</div>
-            <div class="row"><span>V.A.:</span><input type="text" id="v-cn2-va" value="Counts fingers(-), hand motion(-), light perception(-)"></div>
-            <div class="row"><span>Fields:</span><input type="text" id="v-cn2-vf" value="confrontation test-intact; hemianopia(-), quadrantanopia(-)"></div>
-        </div>
-        <div class="sub-group">
-            <div class="label">CN III, IV, VI (EOM)</div>
-            <div class="row"><span>Pupil R/L:</span><input type="text" id="v-cn3-p" value="3mm/3mm" style="width:80px"> <span>LR:</span><input type="text" id="v-cn3-lr" value="+/+" style="width:60px"></div>
-            <div class="row"><span>Diplopia:</span><select id="v-cn3-dip"><option>-</option><option>+</option></select> <span>Pursuit:</span><input type="text" id="v-cn3-pur" value="smooth" style="width:100px"></div>
-        </div>
-        <div class="row"><div class="label">CN V (Trigeminal)</div><input type="text" id="v-cn5" value="Corneal(+/+); Facial sensation intact; Masseter/Temporalis full"></div>
-        <div class="row"><div class="label">CN VII (Facial)</div><input type="text" id="v-cn7" value="No Central/Peripheral type facial palsy; Nasolabial fold shallowing(-)"></div>
-        <div class="row"><div class="label">CN VIII (Hearing)</div><input type="text" id="v-cn8" value="fair by finger rubbing; Weber: no lat.; Rinne: AC>BC"></div>
-        <div class="row"><div class="label">CN IX, X, XII</div><input type="text" id="v-cn9-12" value="Uvula dev(-), Gag(+), dysarthria(-); Tongue dev(-), atrophy(-), fasciculation(-)"></div>
+        <div class="sub-title">CN II (Visual)</div>
+        <div class="row"><div class="label">V.A.</div><input type="text" id="v-cn2-va" value="Counts fingers(-), hand motion(-), light perception(-)"></div>
+        <div class="row"><div class="label">V.F.</div><input type="text" id="v-cn2-vf" value="confrontation test-intact, hemianopia(-), quadrantanopia(-)"></div>
+        <div class="sub-title">CN III, IV, VI (EOM)</div>
+        <div class="row"><div class="label">Pupil/LR (R/L)</div><input type="text" id="v-cn3-p" value="3mm/3mm" style="width:80px"> <input type="text" id="v-cn3-lr" value="+/+" style="width:60px"></div>
+        <div class="row"><div class="label">EOM/Diplopia</div><input type="text" id="v-cn3-eom" value="Primary gaze at neutral without diplopia; pursuit smooth"></div>
+        <div class="row"><div class="label">CN V (Trigeminal)</div><input type="text" id="v-cn5" value="Corneal(+/+); Facial sensation intact; Masseter R/L full"></div>
+        <div class="row"><div class="label">CN VII (Facial)</div><input type="text" id="v-cn7" value="No Central/Peripheral facial palsy; Nasolabial fold shallowing(-)"></div>
+        <div class="row"><div class="label">CN VIII (Hearing)</div><input type="text" id="v-cn8" value="fair by finger rubbing; Weber: no lateralization; Rinne: AC>BC"></div>
+        <div class="row"><div class="label">CN IX, X, XI, XII</div><input type="text" id="v-cn9" value="Uvula dev(-), Gag(+), dysarthria(-); SCM/Trap 5/5; Tongue dev(-)"></div>
     </div>
 
     <div id="s-motor" class="sec hidden">
         <div class="section-title">Motor Inspection & Tone</div>
         <div class="row"><div class="label">Inspection</div><input type="text" id="v-motor-ins" value="muscle wasting(-), fasciculation(-), muscle cramps(-), dystonia(-)"></div>
         <div class="row"><div class="label">Muscle Tone</div><input type="text" id="v-motor-tone" value="spasticity(-), rigidity(-)"></div>
-        <div class="row"><div class="label">Pronator Drift</div><input type="text" id="v-motor-drift" value="L/R: -/-"></div>
+        <div class="row"><div class="label">Pronator Drift (L/R)</div><input type="text" id="v-motor-drift" value="-/-"></div>
     </div>
 
     <div id="s-mp" class="sec hidden">
         <div class="section-title">Muscle Power (R/L)</div>
-        <div id="mp-container"></div>
+        <div id="mp-box"></div>
     </div>
 
     <div id="s-reflex" class="sec hidden">
-        <div class="section-title">Reflexes (R/L)</div>
-        <div id="reflex-container"></div>
-        <div class="row"><div class="label">Babinski/Hoffman</div><input type="text" id="v-ref-ext" value="Babinski: -/-, Hoffman R/L: -/-, Jaw jerk: -"></div>
+        <div class="section-title">Deep Tendon Reflex (R/L)</div>
+        <div id="reflex-box"></div>
+        <div class="sub-title">Pathological / Primitive</div>
+        <div class="row"><div class="label">Babinski/Hoffman</div><input type="text" id="v-ref-path" value="-/-, Hoffman R/L: -/-, Jaw jerk: -"></div>
         <div class="row"><div class="label">Primitive</div><input type="text" id="v-ref-prim" value="Glabella: -; snouting -/-; rooting -/-; sucking -"></div>
     </div>
 
     <div id="s-sensory" class="sec hidden">
         <div class="section-title">Sensation</div>
-        <div class="row"><div class="label">Light Touch/Pin/Temp</div><input type="text" id="v-sens-basic" value="symmetrically intact"></div>
-        <div class="row"><div class="label">Neglect/Romberg</div><input type="text" id="v-sens-neg" value="Double simultaneous stimuli: no tactile neglect; Romberg test(-)"></div>
-        <div class="grid-2">
-            <div><span>Joint Finger R/L</span><input type="text" id="v-sens-jf" value="5/5, 5/5"></div>
-            <div><span>Joint Toe R/L</span><input type="text" id="v-sens-jt" value="5/5, 5/5"></div>
-        </div>
-        <div class="sub-title" style="margin-top:10px; font-weight:bold;">Vibration (0-8)</div>
-        <div class="row"><span>Big Toe R/L:</span><input type="text" id="v-vibe-toe" value="6/8, 6/8"></div>
-        <div class="row"><span>Finger R/L:</span><input type="text" id="v-vibe-fin" value="6.5-7/8, 6.5-7/8"></div>
+        <div class="row"><div class="label">LT/PP/Temp</div><input type="text" id="v-sens-basic" value="symmetrically intact"></div>
+        <div class="row"><div class="label">Neglect/Romberg</div><input type="text" id="v-sens-neg" value="no tactile neglect; Romberg test(-)"></div>
+        <div class="sub-title">Joint position (R, L)</div>
+        <div class="row"><span>Fingers:</span><input type="text" id="v-sens-jf" value="5/5, 5/5"></div>
+        <div class="row"><span>Toes:</span><input type="text" id="v-sens-jt" value="5/5, 5/5"></div>
+        <div class="sub-title">Vibration (R, L) /8</div>
+        <div class="row"><span>Big toe:</span><input type="text" id="v-vibe-toe" value="6/8, 6/8"></div>
+        <div class="row"><span>Finger:</span><input type="text" id="v-vibe-fin" value="6.5-7/8, 6.5-7/8"></div>
+        <div class="row"><span>Ankle:</span><input type="text" id="v-vibe-ank" value="6.5/8, 6.5/8"></div>
     </div>
 
     <div id="s-eps" class="sec hidden">
-        <div class="section-title">Coordination</div>
+        <div class="section-title">Coordination & EPS</div>
         <div class="row"><span>FNF/HKS:</span><input type="text" id="v-coord-basic" value="dysmetria(-)"></div>
-        <div class="row"><span>RAM:</span><input type="text" id="v-coord-ram" value="dysdiadochokinesia(-)"></div>
-        <div class="row"><span>Tandem Gait:</span><input type="text" id="v-coord-tandem" value="steady"></div>
-        <div class="section-title">EPS</div>
-        <div class="row"><span>Mask/Tremor:</span><input type="text" id="v-eps-basic" value="Mask face(-), Tremor: resting(-), action(-), posture(-)"></div>
-        <div class="row"><span>Bradykinesia:</span><input type="text" id="v-eps-brady" value="RUE(-), LUE(-), RLE(-), LLE(-)"></div>
-        <div class="row"><span>Gait/ANS:</span><input type="text" id="v-eps-gait" value="Gait: normal velocity, small steps(-), foot drop(-)"></div>
+        <div class="row"><span>Tremor:</span><input type="text" id="v-eps-tremor" value="resting(-), action(-), posture(-)"></div>
+        <div class="row"><span>Gait Style:</span><input type="text" id="v-gait-style" value="Velocity normal, small steps(-), foot drop(-)"></div>
     </div>
 
     <div id="s-updrs" class="sec hidden">
-        <div class="section-title">UPDRS part III</div>
-        <div id="updrs-container"></div>
+        <div class="section-title">UPDRS Part III</div>
+        <div id="updrs-box"></div>
     </div>
 
     <div id="s-cognition" class="sec hidden">
-        <div class="section-title">Cognition</div>
-        <div class="row"><span>MMSE Total:</span><input type="text" id="v-mmse-total" value="30/30"></div>
-        <div class="row"><span>Luria 3-step:</span><input type="text" id="v-mmse-luria" value=">=6 spontaneous movements"></div>
-        <div class="row"><span>Language:</span><input type="text" id="v-mmse-lang" value="fluent; Repetition: fair; Naming: well"></div>
-        <div class="row"><span>Gerstmann/Neglect:</span><input type="text" id="v-mmse-parietal" value="Gerstmann: nil; no auditory/tactile/Visual hemineglect"></div>
+        <div class="section-title">Higher Cortical Function</div>
+        <div class="row"><span>MMSE:</span><input type="text" id="v-cog-mmse" value="30/30"></div>
+        <div class="row"><span>Language:</span><input type="text" id="v-cog-lang" value="fluent, fair repetition/naming"></div>
     </div>
 
     <div id="s-export" class="sec hidden">
-        <div class="section-title">Final Neurological Examination Note</div>
+        <div class="section-title">Generated NE Note</div>
         <textarea id="export-area" readonly></textarea>
-        <button onclick="copyNote()" style="margin-top:10px; padding:10px; background:#3498db; color:white; border:none; width:100%;">COPY TO CLIPBOARD</button>
+        <button onclick="copyToClipboard()" style="width:100%; padding:15px; background:#3498db; color:white; font-weight:bold; border:none; margin-top:10px; cursor:pointer;">CLICK TO COPY NOTE</button>
     </div>
 </div>
 
+<div class="footer-bar"><span id="nihss-score-display" style="font-weight:bold;">NIHSS Score: 0</span></div>
+
 <script>
-const mpList = [
-    {n:"neck flexion/ extension", def:"5/5"},
-    {n:"Shoulder abduction (C5)", def:"5/5"},
-    {n:"Elbow flexion (C6)/ext (C7)", def:"5/5; 5/5"},
-    {n:"Wrist flexion (C7)/ext (C6)", def:"5/5; 5/5"},
-    {n:"Finger flexion (C8)/ext (C7)", def:"5/5; 5/5"},
-    {n:"Grasping (C8/T1)", def:"5/5"},
-    {n:"Finger abd/add (T1)", def:"5/5; 5/5"},
-    {n:"Hip flexion (L2)", def:"5/5"},
-    {n:"Knee flexion (S2)/ext (L3)", def:"5/5; 5/5"},
-    {n:"Ankle dorsi (L4)/plantar (S1)", def:"5/5; 5/5"},
-    {n:"Big toe extension (L5)", def:"5/5"}
+const nihssData = [
+    {n:"1a. 意識程度", opts:["0 清醒","1 嗜睡","2 呆滯","3 昏迷"]},
+    {n:"1b. 意識詢問", opts:["0 兩項正確","1 一項正確","2 兩項錯誤"]},
+    {n:"1c. 執行命令", opts:["0 兩項正確","1 一項正確","2 兩項錯誤"]},
+    {n:"2. 眼球運動", opts:["0 正常","1 部份限制","2 偏向一側"]},
+    {n:"3. 視野", opts:["0 看到","1 部份偏盲","2 偏盲","3 全盲"]},
+    {n:"4. 面部肌肉", opts:["0 正常","1 嘴角稍歪","2 嘴角不動","3 完全麻痺"]},
+    {n:"5a. 左上肢", opts:["0 無掉落","1 微掉落","2 掉到床面","3 僅有晃動","4 無收縮"]},
+    {n:"5b. 右上肢", opts:["0 無掉落","1 微掉落","2 掉到床面","3 僅有晃動","4 無收縮"]},
+    {n:"6a. 左下肢", opts:["0 無掉落","1 微掉落","2 掉到床面","3 僅有晃動","4 無收縮"]},
+    {n:"6b. 右下肢", opts:["0 無掉落","1 微掉落","2 掉到床面","3 僅有晃動","4 無收縮"]},
+    {n:"7. 肢體失調", opts:["0 無","1 一肢","2 二肢"]},
+    {n:"8. 感覺功能", opts:["0 正常","1 部份喪失","2 完全喪失"]},
+    {n:"9. 語言功能", opts:["0 正常","1 輕度","2 嚴重","3 完全失語"]},
+    {n:"10. 構音", opts:["0 正常","1 部份了解","2 無法了解"]},
+    {n:"11. 忽略", opts:["0 無","1 輕微/一項","2 嚴重/兩項"]}
 ];
 
-const reflexList = ["Biceps(C5/6)", "Triceps(C7)", "Brachioradialis(C5/6)", "Knee(L4)", "Ankle(S1)"];
-
-const updrsItems = [
-    "Speech", "Mask face", "Resting tremor (RU/LU/RL/LL)", "Action tremor (R/L)", 
-    "Rigidity (Neck/RU/LU/RL/LL)", "Finger tapping (R/L)", "Grasping (R/L)", "RAM (R/L)", 
-    "Foot tapping (R/L)", "Stand up", "Posture", "Gait", "Pull test", "Bradykinesia"
-];
+const mpData = ["neck flexion/ extension", "Shoulder abduction (C5)", "Elbow flexion (C6)/ext (C7)", "Wrist flexion (C7)/ext (C6)", "Finger flexion (C8)/ext (C7)", "Grasping (C8/T1)", "Finger abd/add (T1)", "Hip flexion (L2)", "Knee flexion (S2)/ext (L3)", "Ankle dorsi (L4)/plantar (S1)", "Big toe extension (L5)"];
+const updrsItems = ["Speech", "Mask face", "Resting tremor", "Action tremor", "Rigidity", "Finger tapping", "Grasping", "RAM", "Foot tapping", "Stand up", "Posture", "Gait", "Pull test", "Bradykinesia"];
 
 function init() {
-    const mpBox = document.getElementById('mp-container');
-    mpList.forEach((it, i) => {
-        mpBox.innerHTML += `<div class="row"><span class="label" style="flex:3">${it.n}</span><input type="text" class="mp-val" style="flex:2" value="${it.def}"></div>`;
+    const nb = document.getElementById('nihss-box');
+    nihssData.forEach((q, i) => {
+        nb.innerHTML += `<div class="row"><span class="label">${q.n}</span><select class="n-val" onchange="calcNIHSS()">${q.opts.map((o,v)=>`<option value="${v}">${o}</option>`).join('')}</select></div>`;
     });
 
-    const refBox = document.getElementById('reflex-container');
-    reflexList.forEach(it => {
-        refBox.innerHTML += `<div class="row"><span class="label">${it}</span><input type="text" class="ref-val" value="++/++"></div>`;
-    });
+    const mpb = document.getElementById('mp-box');
+    mpData.forEach(item => { mpb.innerHTML += `<div class="mp-grid"><span>${item}</span><input type="text" class="mp-val" value="5/5"></div>`; });
 
-    const updrsBox = document.getElementById('updrs-container');
-    updrsItems.forEach(it => {
-        updrsBox.innerHTML += `<div class="row"><span class="label" style="flex:3">${it}</span><input type="text" class="updrs-val" style="flex:1" value="0"></div>`;
-    });
+    const rb = document.getElementById('reflex-box');
+    ["Biceps", "Triceps", "Brachioradialis", "Knee", "Ankle"].forEach(it => { rb.innerHTML += `<div class="mp-grid"><span>${it}</span><input type="text" class="ref-val" value="++/++"></div>`; });
+
+    const ub = document.getElementById('updrs-box');
+    updrsItems.forEach(it => { ub.innerHTML += `<div class="mp-grid"><span>${it}</span><input type="text" class="up-val" value="0"></div>`; });
+}
+
+function calcNIHSS() {
+    const total = Array.from(document.querySelectorAll('.n-val')).reduce((a, b) => a + parseInt(b.value), 0);
+    document.getElementById('nihss-score-display').innerText = `NIHSS Score: ${total}`;
 }
 
 function show(id) {
     document.querySelectorAll('.sec').forEach(s => s.classList.add('hidden'));
     document.getElementById('s-' + id).classList.remove('hidden');
     document.querySelectorAll('.menu button').forEach(b => b.classList.remove('active'));
-    if(document.getElementById('b-' + id)) document.getElementById('b-' + id).classList.add('active');
+    document.getElementById('b-' + id).classList.add('active');
 }
 
 function exportData() {
     show('export');
     const get = (id) => document.getElementById(id).value;
+    const nihssTotal = Array.from(document.querySelectorAll('.n-val')).reduce((a, b) => a + parseInt(b.value), 0);
     const mps = document.querySelectorAll('.mp-val');
     const refs = document.querySelectorAll('.ref-val');
-    const ups = document.querySelectorAll('.updrs-val');
 
-    let t = `【Neurological examination】\n. Consciousness: ${get('v-consciousness')}\n\n`;
+    let t = `【Neurological examination】\n. Consciousness: clear\n\n*Cranial nerve\nCN I : ${get('v-cn1')}\nCN II: Visual acuity: ${get('v-cn2-va')}\n       Visual fields: ${get('v-cn2-vf')}\nCN III, IV, VI:\n       Pupil/LR: ${get('v-cn3-p')}, ${get('v-cn3-lr')}\n       EOM: ${get('v-cn3-eom')}\nCN V, VII, VIII: (Intact)\nCN IX, X, XII: ${get('v-cn9')}\n\n`;
+
+    t += `*Motor\nMotor inspection: ${get('v-motor-ins')}\nMuscle tone: ${get('v-motor-tone')}\nMuscle power:(R/L)\n`;
+    mpData.forEach((name, i) => { t += `  ${name.padEnd(28)} ${mps[i].value}\n`; });
+    t += `\n*Reflex\nDeep tendon reflex：(R/L)\n`;
+    ["Biceps", "Triceps", "Brachioradialis", "Knee", "Ankle"].forEach((name, i) => { t += `  ${name.padEnd(18)}: ${refs[i].value}\n`; });
     
-    t += `*Cranial nerve\n`;
-    t += `CN I : ${get('v-cn1')}\n`;
-    t += `CN II: Visual acuity: ${get('v-cn2-va')}\n       Visual fields: ${get('v-cn2-vf')}\n`;
-    t += `CN III, IV, VI:\n       Pupil: isocoric R/L: ${get('v-cn3-p')}, light reflex R/L: ${get('v-cn3-lr')}\n`;
-    t += `       EOM: (Intact), Diplopia(${document.getElementById('v-cn3-dip').value}), Pursuit: ${get('v-cn3-pur')}\n`;
-    t += `CN V: ${get('v-cn5')}\n`;
-    t += `CN VII: ${get('v-cn7')}\n`;
-    t += `CN VIII: ${get('v-cn8')}\n`;
-    t += `CN IX, X, XII: ${get('v-cn9-12')}\n\n`;
-
-    t += `*Motor\nMotor inspection: ${get('v-motor-ins')}\nMuscle tone: ${get('v-motor-tone')}\n\n`;
-    t += `Muscle power:(R/L)\n`;
-    mpList.forEach((it, i) => { t += ` ${it.n.padEnd(25)} ${mps[i].value}\n`; });
-    t += `\npronator drift test: ${get('v-motor-drift')}\n\n`;
-
-    t += `*Reflex\nDeep tendon reflex：(R/L)\n`;
-    reflexList.forEach((it, i) => { t += ` ${it.padEnd(20)}: ${refs[i].value}\n`; });
-    t += `\n${get('v-ref-ext')}\nPrimitive reflexes: ${get('v-ref-prim')}\n\n`;
-
-    t += `*Sensation\nLight touch/Pin/Temp: ${get('v-sens-basic')}\n${get('v-sens-neg')}\n`;
-    t += `Joint position (R, L): Fingers: ${get('v-sens-jf')}, Toes: ${get('v-sens-jt')}\n`;
-    t += `Vibration (R, L): Big toe: ${get('v-vibe-toe')}, Finger: ${get('v-vibe-fin')}, Ankle: ${get('v-vibe-ankle') || '6.5/8, 6.5/8'}\n\n`;
-
-    t += `*Cerebellum/coordination:\n1. FNF/HKS: ${get('v-coord-basic')}\n2. RAM: ${get('v-coord-ram')}\n3. Tandem gait: ${get('v-coord-tandem')}\n\n`;
-
-    t += `*Extrapyramidal system:\n1. ${get('v-eps-basic')}\n2. Bradykinesia: ${get('v-eps-brady')}\n3. ${get('v-eps-gait')}\n\n`;
-
-    t += `UPDRS part III\n`;
-    updrsItems.forEach((it, i) => { t += `${it}: ${ups[i].value}\n`; });
+    t += `\n*Sensation\nJoint position Fingers: ${get('v-sens-jf')}, Toes: ${get('v-sens-jt')}\nVibration Big toe: ${get('v-vibe-toe')}\n\n`;
     
-    t += `\n*Higher cortical functions/cognition\n. MMSE(${get('v-mmse-total')}): Luria 3-step: ${get('v-mmse-luria')}\n`;
-    t += `. Language: ${get('v-mmse-lang')}\n. Visuospatial: ${get('v-mmse-parietal')}\n`;
+    t += `NIHSS Total Score: ${nihssTotal}\n`;
+    t += `UPDRS Part III: (Checked)\n`;
+    t += `MMSE: ${get('v-cog-mmse')}\n`;
 
     document.getElementById('export-area').value = t;
 }
 
-function copyNote() {
-    const ta = document.getElementById('export-area');
-    ta.select();
+function copyToClipboard() {
+    const area = document.getElementById('export-area');
+    area.select();
     document.execCommand('copy');
-    alert('Note Copied!');
+    alert("Note copied!");
 }
 
-init();
-show('cn');
+init(); show('nihss');
 </script>
 </body>
 </html>
