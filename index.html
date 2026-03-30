@@ -1,1 +1,172 @@
 
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>神經醫學評估工具</title>
+    <style>
+        body { font-family: 'Droid Sans', sans-serif; background: #ffffff; color: #444; margin: 0; padding-bottom: 100px; }
+        .header { background: #f8f8f8; padding: 10px; position: sticky; top: 0; z-index: 100; border-bottom: 1px solid #ddd; }
+        .menu { display: flex; flex-wrap: wrap; gap: 5px; justify-content: center; }
+        .menu button { padding: 6px 10px; font-size: 12px; border: 1px solid #ccc; background: white; border-radius: 4px; }
+        .menu button.active { background: #888; color: white; }
+        .container { padding: 15px; max-width: 600px; margin: auto; }
+        .section-title { font-weight: bold; font-size: 1.2rem; border-left: 5px solid #888; padding-left: 10px; margin: 20px 0 10px; }
+        .card { border: 1px solid #eee; padding: 12px; margin-bottom: 10px; border-radius: 8px; box-shadow: 0 1px 3px rgba(0,0,0,0.05); }
+        .row { display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px; font-size: 14px; }
+        select, input[type="number"] { padding: 4px; border-radius: 4px; border: 1px solid #ddd; }
+        .footer-bar { position: fixed; bottom: 0; width: 100%; background: #f0f0f0; border-top: 1px solid #ccc; padding: 10px; text-align: center; }
+        .score-text { font-weight: bold; font-size: 1rem; color: #333; margin-bottom: 5px; display: block; }
+        .save-btn { background: #555; color: white; border: none; padding: 8px 20px; border-radius: 20px; font-weight: bold; }
+        .hidden { display: none; }
+        @media print { .header, .footer-bar { display: none; } .hidden { display: block !important; } }
+    </style>
+</head>
+<body>
+
+<div class="header">
+    <div class="menu">
+        <button onclick="show('updrs')" id="b-updrs">UPDRS</button>
+        <button onclick="show('nihss')" id="b-nihss">NIHSS</button>
+        <button onclick="show('mmse')" id="b-mmse">MMSE</button>
+        <button onclick="show('mp')" id="b-mp">MP</button>
+        <button onclick="show('dtr')" id="b-dtr">DTR</button>
+        <button onclick="show('joint')" id="b-joint">Joint</button>
+        <button onclick="show('vibe')" id="b-vibe">Vibe</button>
+    </div>
+</div>
+
+<div class="container">
+    <div id="s-updrs" class="sec">
+        <div class="section-title">UPDRS 第三部分：動作檢查</div>
+        <div id="updrs-box"></div>
+    </div>
+
+    <div id="s-nihss" class="sec hidden">
+        <div class="section-title">NIHSS 腦中風評估 [cite: 251, 252]</div>
+        <div id="nihss-box"></div>
+    </div>
+
+    <div id="s-mmse" class="sec hidden">
+        <div class="section-title">MMSE 簡易智能測驗 [cite: 257, 258]</div>
+        <div id="mmse-box"></div>
+    </div>
+
+    <div id="s-mp" class="sec hidden">
+        <div class="section-title">Muscle Strength (R/L)</div>
+        <div id="mp-box"></div>
+    </div>
+
+    <div id="s-dtr" class="sec hidden">
+        <div class="section-title">Deep Tendon Reflex (R/L)</div>
+        <div id="dtr-box"></div>
+    </div>
+
+    <div id="s-joint" class="sec hidden">
+        <div class="section-title">Joint Position (0-5)</div>
+        <div id="joint-box"></div>
+    </div>
+
+    <div id="s-vibe" class="sec hidden">
+        <div class="section-title">Vibration (0-8)</div>
+        <div id="vibe-box"></div>
+    </div>
+</div>
+
+<div class="footer-bar">
+    <span id="score-display" class="score-text">請開始評分</span>
+    <button class="save-btn" onclick="window.print()">儲存頁面 (截圖/PDF)</button>
+</div>
+
+<script>
+// 資料初始化
+const updrsQ = [
+    {id:18, n:"語言", opts:["正常","輕微減弱","中度,含糊但可了解","重度,難了解","完全不了解"]},
+    {id:19, n:"面部表情", opts:["正常","輕微面無表情","輕微減少(確診異常)","中度,嘴微張","僵硬全無,張口>0.5cm"]},
+    {id:20, n:"靜止型顫抖", opts:["沒有","輕微很少出現","持續輕微/間歇中度","中度常出現","幅度大且經常出現"]},
+    {id:21, n:"動作/姿勢顫抖", opts:["沒有","輕微動作發生","中度動作發生","中度動作/姿勢皆有","重度干擾進食"]},
+    {id:22, n:"僵硬", opts:["沒有","極輕微","輕微至中度","明顯可完成","嚴重完成困難"]},
+    {id:23, n:"手指打拍", opts:["正常(≥15)","輕微(11-14)","中度(7-10)","重度(3-6)","幾乎無法(0-2)"]},
+    {id:24, n:"手掌握合", opts:["正常","幅度微減","中度易疲勞","重度啟動吃力","幾乎無法"]},
+    {id:25, n:"前臂迴旋", opts:["正常","遲緩幅度微減","中度易疲勞","重度啟動吃力","幾乎無法"]},
+    {id:26, n:"腳靈敏度", opts:["正常","遲緩幅度微減","中度易疲勞","重度啟動吃力","幾乎無法"]},
+    {id:27, n:"椅上站起", opts:["正常","需試多次","推把手站起","易後跌需自理","需人幫助"]},
+    {id:28, n:"姿勢", opts:["正常挺直","輕微駝背","中度明顯/輕度側彎","中度駝背側彎","嚴重前屈"]},
+    {id:29, n:"步態", opts:["正常","遲緩拖步","困難/急步碎步","極端困難需幫助","無法走路"]},
+    {id:30, n:"姿勢平穩", opts:["正常","後退可平衡","無反應摔倒","自然狀態失衡","需幫助站穩"]},
+    {id:31, n:"動作遲緩", opts:["正常","稍微變慢","輕度減少","中度幅度減小","重度變慢"]}
+];
+
+const nihssQ = [
+    {n:"1a 意識程度", opts:[0,1,2,3]}, {n:"1b 意識詢問", opts:[0,1,2]}, {n:"1c 執行命令", opts:[0,1,2]},
+    {n:"2 眼球運動", opts:[0,1,2]}, {n:"3 視野", opts:[0,1,2,3]}, {n:"4 面部肌肉", opts:[0,1,2,3]},
+    {n:"5a 左上肢", opts:[0,1,2,3,4]}, {n:"5b 右上肢", opts:[0,1,2,3,4]}, 
+    {n:"6a 左下肢", opts:[0,1,2,3,4]}, {n:"6b 右下肢", opts:[0,1,2,3,4]},
+    {n:"7 肢體失調", opts:[0,1,2]}, {n:"8 感覺功能", opts:[0,1,2]},
+    {n:"9 語言功能", opts:[0,1,2,3]}, {n:"10 構音", opts:[0,1,2]}, {n:"11 忽略", opts:[0,1,2]}
+];
+
+// 渲染畫面
+function init() {
+    const uBox = document.getElementById('updrs-box');
+    updrsQ.forEach(q => {
+        uBox.innerHTML += `<div class="card"><div>${q.id}. ${q.n}</div><select class="u-val" onchange="calcU()">${q.opts.map((o,i)=>`<option value="${i}">${i}=${o}</option>`).join('')}</select></div>`;
+    });
+
+    const nBox = document.getElementById('nihss-box');
+    nihssQ.forEach(q => {
+        nBox.innerHTML += `<div class="row"><span>${q.n}</span><select class="n-val" onchange="calcN()">${q.opts.map(v=>`<option value="${v}">${v}</option>`).join('')}</select></div>`;
+    });
+
+    const mBox = document.getElementById('mmse-box');
+    for(let i=1; i<=30; i++){
+        mBox.innerHTML += `<label style="margin:5px;display:inline-block">Q${i}<input type="checkbox" class="m-val" onchange="calcM()"></label>`;
+    }
+
+    const mpBox = document.getElementById('mp-box');
+    ["Neck Flex/Ext", "Shoulder Abd", "Elbow Flex/Ext", "Wrist Flex/Ext", "Grasping", "Hip Flex/Add/Abd", "Knee Flex/Ext", "Ankle DF/PF", "Big Toe Ext"].forEach(it => {
+        mpBox.innerHTML += `<div class="row"><span>${it}</span><div>R:<select>${[0,1,2,3,4,5].map(v=>`<option>${v}</option>`).join('')}</select> L:<select>${[0,1,2,3,4,5].map(v=>`<option>${v}</option>`).join('')}</select></div></div>`;
+    });
+
+    const dBox = document.getElementById('dtr-box');
+    ["Biceps", "Triceps", "Brachioradialis", "Knee", "Ankle"].forEach(it => {
+        dBox.innerHTML += `<div class="row"><span>${it}</span><div><select>${["mute","-","+","++","+++","++++"].map(v=>`<option>${v}</option>`).join('')}</select><input type="checkbox">Ref</div></div>`;
+    });
+
+    const jBox = document.getElementById('joint-box');
+    ["Fingers R","Fingers L","Toes R","Toes L"].forEach(it=>{
+        jBox.innerHTML += `<div class="row"><span>${it}</span><select>${[0,1,2,3,4,5].map(v=>`<option>${v}</option>`).join('')}</select></div>`;
+    });
+
+    const vBox = document.getElementById('vibe-box');
+    ["Big Toe","Finger","Ankle"].forEach(it=>{
+        vBox.innerHTML += `<div class="row"><span>${it} (R/L)</span><div><input type="number" step="0.1" value="8.0" style="width:50px"> / <input type="number" step="0.1" value="8.0" style="width:50px"></div></div>`;
+    });
+}
+
+function show(id) {
+    document.querySelectorAll('.sec').forEach(s=>s.classList.add('hidden'));
+    document.getElementById('s-'+id).classList.remove('hidden');
+    document.querySelectorAll('.menu button').forEach(b=>b.classList.remove('active'));
+    document.getElementById('b-'+id).classList.add('active');
+    if(id==='updrs') calcU(); else if(id==='nihss') calcN(); else if(id==='mmse') calcM(); else document.getElementById('score-display').innerText="紀錄模式";
+}
+
+function calcU() {
+    let t=0; document.querySelectorAll('.u-val').forEach(s=>t+=parseInt(s.value));
+    document.getElementById('score-display').innerText = "UPDRS Part III: " + t;
+}
+function calcN() {
+    let t=0, seq=""; document.querySelectorAll('.n-val').forEach(s=>{t+=parseInt(s.value); seq+=s.value;});
+    document.getElementById('score-display').innerText = `NIHSS = ${t} (${seq})`;
+}
+function calcM() {
+    let t=document.querySelectorAll('.m-val:checked').length;
+    document.getElementById('score-display').innerText = `MMSE = ${t} / 30`;
+}
+
+init(); show('updrs');
+</script>
+</body>
+</html>
