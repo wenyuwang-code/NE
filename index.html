@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>小笨腦記不住NE</title>
+    <title>神經醫學精密評估工具</title>
     <style>
         body { font-family: 'Droid Sans', sans-serif; background: #ffffff; color: #222; margin: 0; padding-bottom: 130px; }
         .header { background: #f4f4f4; padding: 10px; position: sticky; top: 0; z-index: 100; border-bottom: 1px solid #ddd; }
@@ -31,7 +31,7 @@
         .footer-bar { position: fixed; bottom: 0; width: 100%; background: #fff; border-top: 4px solid #888; padding: 18px; text-align: center; box-shadow: 0 -4px 12px rgba(0,0,0,0.15); z-index: 1000; }
         #score-display { font-weight: bold; font-size: 1.3rem; display: block; margin-bottom: 12px; color: #d32f2f; }
         
-        #export-area { width: 100%; height: 300px; font-family: monospace; font-size: 14px; padding: 10px; border-radius: 8px; border: 2px solid #4caf50; background: #f9f9f9; }
+        #export-area { width: 100%; height: 400px; font-family: monospace; font-size: 14px; padding: 10px; border-radius: 8px; border: 2px solid #4caf50; background: #f9f9f9; }
         .hidden { display: none; }
         @media print { .header, .footer-bar, .menu { display: none; } .hidden { display: block !important; } }
     </style>
@@ -62,11 +62,10 @@
     <div id="s-dtr" class="sec hidden"><div class="section-title">DTR / Reflexes</div><div id="dtr-box"></div></div>
     <div id="s-joint" class="sec hidden"><div class="section-title">Joint Position</div><div id="joint-box"></div></div>
     <div id="s-vibe" class="sec hidden"><div class="section-title">Vibration (R/L)</div><div id="vibe-box"></div></div>
-
     <div id="s-export" class="sec hidden">
         <div class="section-title">複製輸出結果</div>
         <textarea id="export-area" readonly></textarea>
-        <p style="text-align: center; color: #666; margin-top: 10px;">請長按文字框全選並複製</p>
+        <p style="text-align: center; color: #666; margin-top: 10px;">請全選並複製內容至病歷</p>
     </div>
 </div>
 
@@ -76,6 +75,7 @@
 </div>
 
 <script>
+// --- 更新後的 NIHSS 文字定義 ---
 const nihssFull = [
     {n:"1a. 意識程度", opts:["清醒 0","嗜睡 1","呆滯 2","昏迷 3"]},
     {n:"1b. 意識詢問（月、年齡）", opts:["兩項正確 0","一項正確 1","兩項錯誤 2"]},
@@ -95,14 +95,14 @@ const nihssFull = [
 ];
 
 function init() {
-    // 渲染 NIHSS
+    // Render NIHSS
     const nBox = document.getElementById('nihss-box');
     nihssFull.forEach((q, i) => {
         let colorClass = (i < 3) ? "bg-white" : (i < 6) ? "bg-grey" : (i < 10) ? "bg-white" : "bg-grey";
         nBox.innerHTML += `<div class="row ${colorClass}"><span class="q-label">${q.n}</span><select class="n-val" onchange="calcN()">${q.opts.map((opt,v)=>`<option value="${v}">${opt}</option>`).join('')}</select></div>`;
     });
 
-    // 渲染 MP (依照指定格式排版所需資料)
+    // Render MP
     const mpBox = document.getElementById('mp-box');
     const mpData = [
         {k:"neck", n:"Neck Flexion / Extension"},
@@ -124,14 +124,13 @@ function init() {
         {k:"l5", n:"Big toe extension", root:"L5"}
     ];
     mpData.forEach(it => {
-        mpBox.innerHTML += `<div class="mp-row"><span class="mp-label">${it.n} <span class="mp-sub">${it.root?'('+it.root+')':''}</span></span><div class="mp-selects">R:<select class="mp-r" data-key="${it.k}">${[5,4,3,2,1,0].map(v=>`<option>${v}</option>`).join('')}</select> L:<select class="mp-l" data-key="${it.k}">${[5,4,3,2,1,0].map(v=>`<option>${v}</option>`).join('')}</select></div></div>`;
+        mpBox.innerHTML += `<div class="mp-row"><span class="mp-label">${it.n} <span class="mp-sub">${it.root?'('+it.root+')':''}</span></span><div class="mp-selects">R:<select class="mp-r">${[5,4,3,2,1,0].map(v=>`<option>${v}</option>`).join('')}</select> L:<select class="mp-l">${[5,4,3,2,1,0].map(v=>`<option>${v}</option>`).join('')}</select></div></div>`;
     });
     mpBox.innerHTML += `<div class="row"><span>Pronator Drift (R/L)</span><input type="text" id="p-drift" value="-/-"></div>`;
 
-    // 渲染 DTR
+    // Render DTR
     const dBox = document.getElementById('dtr-box');
-    const reflexes = ["Biceps(C5/6)", "Triceps(C7)", "Brachioradialis(C5/6)", "Knee(L4)", "Ankle(S1)"];
-    reflexes.forEach(it => {
+    ["Biceps(C5/6)", "Triceps(C7)", "Brachioradialis(C5/6)", "Knee(L4)", "Ankle(S1)"].forEach(it => {
         dBox.innerHTML += `<div class="row"><span class="q-label">${it} (R/L)</span><div class="mp-selects"><select class="dtr-r">${["++","+++","++++","+","-","mute"].map(v=>`<option>${v}</option>`).join('')}</select> / <select class="dtr-l">${["++","+++","++++","+","-","mute"].map(v=>`<option>${v}</option>`).join('')}</select></div></div>`;
     });
     dBox.innerHTML += `
@@ -147,20 +146,20 @@ function init() {
         <div class="row"><span>Grasping:</span><input type="text" id="p-grasp" value="-/-"></div>
     `;
 
-    // MMSE, UPDRS, Joint, Vibe (略，結構同前)
+    // Render MMSE
     const mBox = document.getElementById('mmse-box');
     const mmseQ = ["今年是哪一年？", "現在是什麼季節？", "今天是幾號？", "今天是禮拜幾？", "現在是哪個月？", "省/市名稱？", "縣/市名稱？", "區/鄉鎮名稱？", "機構/醫院名稱？", "現在在幾樓？", "複述：藍色", "複述：悲傷", "複述：火車", "100-7=93", "再減7=86", "再減7=79", "再減7=72", "再減7=65", "回憶：藍色", "回憶：悲傷", "回憶：火車", "辨識：手錶", "辨識：鉛筆", "唸一句：白紙真正寫黑字", "指令：請閉上眼睛", "指令：拿紙", "指令：折半", "指令：放大腿", "寫一個完整句子", "畫出交叉五邊形"];
     mmseQ.forEach((q, i) => mBox.innerHTML += `<div class="row"><span class="q-label">${i+1}. ${q}</span><select class="m-val" onchange="calcM()"><option value="0">0</option><option value="1">1</option></select></div>`);
 
+    // Render Joint & Vibration
     const jBox = document.getElementById('joint-box');
-    ["Fingers (R/L)", "Toes (R/L)"].forEach(it => jBox.innerHTML += `<div class="row"><span class="q-label">${it}</span><div class="mp-selects"><select class="j-r">5</select>/<select class="j-l">5</select></div></div>`);
-    // (補全 Joint 選項)
-    document.querySelectorAll('.j-r, .j-l').forEach(el => el.innerHTML = [5,4,3,2,1,0].map(v=>`<option>${v}</option>`).join(''));
+    ["Fingers (R/L)", "Toes (R/L)"].forEach(it => jBox.innerHTML += `<div class="row"><span class="q-label">${it}</span><div class="mp-selects"><select class="j-r">${[5,4,3,2,1,0].map(v=>`<option>${v}</option>`).join('')}</select>/<select class="j-l">${[5,4,3,2,1,0].map(v=>`<option>${v}</option>`).join('')}</select></div></div>`);
 
     const vBox = document.getElementById('vibe-box');
     const vOpts = []; for(let i=80; i>=0; i--) vOpts.push((i/10).toFixed(1));
     ["Big toe", "Finger", "Ankle"].forEach(it => vBox.innerHTML += `<div class="row"><span class="q-label">${it} (R/L)</span><div class="mp-selects"><select class="v-r">${vOpts.map(v=>`<option ${v=='8.0'?'selected':''}>${v}</option>`).join('')}</select> / <select class="v-l">${vOpts.map(v=>`<option ${v=='8.0'?'selected':''}>${v}</option>`).join('')}</select></div></div>`);
 
+    // Render UPDRS
     const uBox = document.getElementById('updrs-box');
     const uData = [{id:18,n:"語言"},{id:19,n:"面部表情"},{id:20,n:"靜止型顫抖"},{id:21,n:"動作/姿勢顫抖"},{id:22,n:"僵硬"},{id:23,n:"手指打拍"},{id:24,n:"手掌握合"},{id:25,n:"前臂迴旋"},{id:26,n:"腳靈敏度"},{id:27,n:"椅上站起"},{id:28,n:"姿勢"},{id:29,n:"步態"},{id:30,n:"姿勢平穩"},{id:31,n:"動作遲緩"}];
     uData.forEach(q => uBox.innerHTML += `<div class="row"><span class="q-label">${q.id}. ${q.n}</span><select class="u-val" onchange="calcU()">${[0,1,2,3,4].map(v=>`<option value="${v}">${v}</option>`).join('')}</select></div>`);
@@ -178,18 +177,24 @@ function updateScoreDisplay(id) {
     if(id==='nihss') calcN();
     else if(id==='mmse') calcM();
     else if(id==='updrs') calcU();
-    else document.getElementById('score-display').innerText = "臨床數據紀錄模式";
 }
 
-// 核心功能：匯出文字
+function calcN() {
+    const vals = Array.from(document.querySelectorAll('.n-val')).map(s=>s.value);
+    const total = vals.reduce((a,b)=>a+parseInt(b), 0);
+    const s = vals;
+    document.getElementById('score-display').innerText = `NIHSS = ${total} (${s[0]}${s[1]}${s[2]} ${s[3]}${s[4]}${s[5]} ${s[6]}${s[7]}${s[8]}${s[9]} ${s[10]}${s[11]}${s[12]}${s[13]}${s[14]})`;
+}
+function calcM() { document.getElementById('score-display').innerText = "MMSE: " + Array.from(document.querySelectorAll('.m-val')).reduce((a,b)=>a+parseInt(b.value), 0); }
+function calcU() { document.getElementById('score-display').innerText = "UPDRS Part III: " + Array.from(document.querySelectorAll('.u-val')).reduce((a,b)=>a+parseInt(b.value), 0); }
+
 function exportData() {
     show('export');
     const getV = (selector) => document.querySelector(selector).value;
     const allMP_R = Array.from(document.querySelectorAll('.mp-r')).map(s=>s.value);
     const allMP_L = Array.from(document.querySelectorAll('.mp-l')).map(s=>s.value);
     
-    let t = `[神經學評估報告]\n\n`;
-    t += `NIHSS: ${document.getElementById('score-display').innerText}\n`;
+    let t = `NIHSS: ${document.getElementById('score-display').innerText}\n`;
     t += `MMSE: ${Array.from(document.querySelectorAll('.m-val')).reduce((a,b)=>a+parseInt(b.value), 0)}/30\n`;
     t += `UPDRS Part III: ${Array.from(document.querySelectorAll('.u-val')).reduce((a,b)=>a+parseInt(b.value), 0)}\n\n`;
 
@@ -210,4 +215,26 @@ function exportData() {
     t += `*Reflex\nDeep tendon reflex：(R/L)\n`;
     const dr = Array.from(document.querySelectorAll('.dtr-r')).map(s=>s.value);
     const dl = Array.from(document.querySelectorAll('.dtr-l')).map(s=>s.value);
-    t += ` Biceps(C5/6): ${dr[0]}/${dl[0]}\n Triceps(C7): ${dr[1]}/${dl[1]}\n Brachioradialis(C5/6): ${dr[2]}/${dl[2]}\n Knee(L4): ${dr[3]}/${dl[3]}\n Ankle(S1): ${dr
+    t += ` Biceps(C5/6): ${dr[0]}/${dl[0]}\n Triceps(C7): ${dr[1]}/${dl[1]}\n Brachioradialis(C5/6): ${dr[2]}/${dl[2]}\n Knee(L4): ${dr[3]}/${dl[3]}\n Ankle(S1): ${dr[4]}/${dl[4]}\n\n`;
+    t += `Babinski: ${getV('#babinski')}, Hoffman R/L: ${getV('#hoffman')}, Jaw jerk: ${getV('#jawjerk')}\n\n`;
+    t += `Primitive reflexes (R/L):\n`;
+    t += `Glabella: ${getV('#glabella')}; snouting ${getV('#snouting')}; rooting ${getV('#rooting')}; sucking ${getV('#sucking')}\n`;
+    t += `Palmo-mental reflexes: ${getV('#palmo')}; grasping ${getV('#p-grasp')}\n\n`;
+
+    t += `Joint position (R, L):\n`;
+    const jr = Array.from(document.querySelectorAll('.j-r')).map(s=>s.value);
+    const jl = Array.from(document.querySelectorAll('.j-l')).map(s=>s.value);
+    t += `  Fingers: ${jr[0]}/${jl[0]}\n  Toes: ${jr[1]}/${jl[1]}\n\n`;
+
+    t += `Vibration (R, L):\n`;
+    const vr = Array.from(document.querySelectorAll('.v-r')).map(s=>s.value);
+    const vl = Array.from(document.querySelectorAll('.v-l')).map(s=>s.value);
+    t += `  Big toe: ${vr[0]}/8, ${vl[0]}/8\n  Finger: ${vr[1]}/8, ${vl[1]}/8\n  Ankle: ${vr[2]}/8, ${vl[2]}/8\n`;
+
+    document.getElementById('export-area').value = t;
+}
+
+init(); show('nihss');
+</script>
+</body>
+</html>
