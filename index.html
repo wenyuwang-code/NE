@@ -27,7 +27,6 @@
         .item-label { font-weight: bold; color: #2c3e50; display: block; margin-bottom: 5px; }
         .sub-row { display: flex; align-items: center; gap: 10px; margin-top: 5px; background: #f9f9f9; padding: 5px; border-radius: 4px; }
 
-        /* 歷史紀錄樣式 */
         .history-item { display: flex; justify-content: space-between; align-items: center; padding: 12px; border: 1px solid #ddd; margin-bottom: 8px; border-radius: 6px; background: #fff; cursor: pointer; transition: 0.2s; }
         .history-item:hover { background: #f0f7ff; border-color: #3498db; }
         .history-info { display: flex; flex-direction: column; }
@@ -47,6 +46,7 @@
 <div class="header">
     <div class="menu">
         <button onclick="show('nihss')" id="b-nihss">NIHSS</button>
+        <button onclick="show('cn')" id="b-cn">CN</button>
         <button onclick="show('updrs')" id="b-updrs">UPDRS</button>
         <button onclick="show('motor')" id="b-motor">Motor</button>
         <button onclick="show('reflex')" id="b-reflex">Reflex</button>
@@ -66,6 +66,11 @@
     <div id="s-nihss" class="sec">
         <div class="section-title">NIHSS 腦中風量表</div>
         <div id="nihss-container"></div>
+    </div>
+
+    <div id="s-cn" class="sec hidden">
+        <div class="section-title">Cranial Nerves (CN)</div>
+        <div id="cn-container"></div>
     </div>
 
     <div id="s-updrs" class="sec hidden">
@@ -130,7 +135,7 @@
 </div>
 
 <script>
-// --- NIHSS 數據結構 (維持現狀) ---
+// --- 資料結構 ---
 const nihssFull = [
     {n:"1a. 意識程度", opts:["0 清醒","1 嗜睡","2 呆滯","3 昏迷"]},
     {n:"1b. 意識詢問（月、年齡）", opts:["0 兩項正確","1 一項正確","2 兩項錯誤"]},
@@ -147,6 +152,52 @@ const nihssFull = [
     {n:"9. 語言功能 (看圖說故事/命名)", opts:["0 表達詳細清楚","1 任一項缺損","2 嚴重缺損","3 完全失語"]},
     {n:"10. 構音困難", opts:["0 清晰","1 部份瞭解","2 無法瞭解"]},
     {n:"11. 忽略 (視/觸/聽/空間)", opts:["0 兩側感受到刺激","1 忽略一項","2 忽略兩項以上"]}
+];
+
+const cnData = [
+    { label: "CN I: smell", items: ["not performed", "anosmia", "hyposmia", "hyperosmia", "olfactory agnosia"], type: 'select' },
+    { label: "CN II: Visual acuity", items: ["Counts fingers", "hand motion", "light perception"], type: 'select' },
+    { label: "CN II: Visual fields", items: [
+        { n: "confrontation test", type: 'text', def: "intact" },
+        { n: "hemianopia", type: 'select' },
+        { n: "quadrantanopia", type: 'select' }
+    ]},
+    { label: "CN III, IV, VI: Pupil", items: [
+        { n: "isocoric R/L", type: 'text', def: "3mm/3mm" },
+        { n: "light reflex R/L", type: 'text', def: "+/+" },
+        { n: "RAPD", type: 'text', def: "-/-" }
+    ]},
+    { label: "CN III, IV, VI: Others", items: [
+        { n: "EOM", type: 'text', def: "full" },
+        { n: "Primary gaze", type: 'text', def: "at neutral positions without diplopia" },
+        { n: "Convergence", type: 'text', def: "fair" },
+        { n: "Binocular diplopia", type: 'select' },
+        { n: "Pursuit", type: 'text', def: "smooth" },
+        { n: "Saccade", type: 'text', def: "no dysmetria" }
+    ]},
+    { label: "CN V", items: [
+        { n: "Corneal reflex", type: 'text', def: "+/+" },
+        { n: "Facial sensation", type: 'text', def: "intact and symmetric to pinprick and light touch" },
+        { n: "Masseter R/L", type: 'text', def: "full" },
+        { n: "Temporalis R/L", type: 'text', def: "full" }
+    ]},
+    { label: "CN VII", items: [
+        { n: "Facial palsy type", type: 'text', def: "No Central/Peripheral type facial palsy" },
+        { n: "Nasolabial fold shallowing", type: 'select' }
+    ]},
+    { label: "CN VIII", items: [
+        { n: "Hearing ability", type: 'text', def: "fair by finger rubbing test" },
+        { n: "Weber test", type: 'text', def: "no lateralization" },
+        { n: "Rinne test", type: 'text', def: "bilatareal AC>BC" }
+    ]},
+    { label: "CN IX, X", items: [
+        { n: "Uvula deviation", type: 'select' },
+        { n: "Gag reflex", type: 'text', def: "+" },
+        { n: "dysarthria", type: 'select' }
+    ]},
+    { label: "CN XI (SCM)", items: ["weakness", "atrophy"], type: 'select' },
+    { label: "CN XI (Trapezius)", items: ["weakness", "atrophy"], type: 'select' },
+    { label: "CN XII", items: ["deviation", "atrophy", "fasciculation"], type: 'select' }
 ];
 
 const updrsFull = [
@@ -170,12 +221,33 @@ const mmseQs = ["年份","季節","日期","禮拜","月份","省/市","縣/市"
 const mpItems = ["Neck flex/ext", "Shoulder abd (C5)", "Elbow flex (C6)", "Elbow ext (C7)", "Wrist ext (C6)", "Finger flex (C8)", "Grasping (C8/T1)", "Finger abd (T1)", "Hip flex (L2)", "Knee ext (L3)", "Ankle dorsi (L4)", "Ankle plantar (S1)", "Big toe ext (L5)"];
 
 function init() {
+    // NIHSS Init
     const nBox = document.getElementById('nihss-container');
     nihssFull.forEach((item, index) => {
         nBox.innerHTML += `<div class="item-box"><span class="item-label">${item.n}</span>
             <select class="n-val" onchange="autoUpdate()">${item.opts.map((o,v)=>`<option value="${v}">${o}</option>`).join('')}</select></div>`;
     });
 
+    // CN Init
+    const cnBox = document.getElementById('cn-container');
+    cnData.forEach((group, gIdx) => {
+        let html = `<div class="item-box"><span class="item-label">${group.label}</span>`;
+        group.items.forEach((it, iIdx) => {
+            const name = typeof it === 'string' ? it : it.n;
+            const type = typeof it === 'string' ? group.type : it.type;
+            const defVal = it.def || "";
+            html += `<div class="sub-row"><span>${name}:</span>`;
+            if (type === 'select') {
+                html += `<select class="cn-input" data-name="${name}" onchange="autoUpdate()"><option value="-">-</option><option value="+">+</option><option value="not performed">not performed</option></select>`;
+            } else {
+                html += `<input type="text" class="cn-input" data-name="${name}" value="${defVal}" oninput="autoUpdate()">`;
+            }
+            html += `</div>`;
+        });
+        cnBox.innerHTML += html + `</div>`;
+    });
+
+    // UPDRS Init
     const uBox = document.getElementById('updrs-container');
     updrsFull.forEach(item => {
         let html = `<div class="item-box"><span class="item-label">${item.n}</span>`;
@@ -184,21 +256,25 @@ function init() {
         uBox.innerHTML += html + `</div>`;
     });
 
+    // Motor Init
     const mpBox = document.getElementById('mp-box');
     mpItems.forEach(it => {
         let opts = [5,4,3,2,1,0].map(v => `<option value="${v}">${v}</option>`).join('');
         mpBox.innerHTML += `<div class="mp-row"><span>${it}</span><div>R:<select class="mp-r" onchange="autoUpdate()">${opts}</select> L:<select class="mp-l" onchange="autoUpdate()">${opts}</select></div></div>`;
     });
 
+    // Joint/Vibe Init
     const jvBox = document.getElementById('joint-vibe-box');
     ["Fingers", "Toes"].forEach(it => jvBox.innerHTML += `<div class="mp-row"><span>${it} Joint Position</span><div>R:<select class="j-r" onchange="autoUpdate()"></select> L:<select class="j-l" onchange="autoUpdate()"></select></div></div>`);
     const vOpts = []; for(let i=80; i>=0; i-=5) vOpts.push((i/10).toFixed(1));
     ["Big toe", "Finger"].forEach(it => jvBox.innerHTML += `<div class="mp-row"><span>${it} Vibration</span><div>R:<select class="v-r" onchange="autoUpdate()">${vOpts.map(v=>`<option ${v=='8.0'?'selected':''}>${v}</option>`).join('')}</select> L:<select class="v-l" onchange="autoUpdate()">${vOpts.map(v=>`<option ${v=='8.0'?'selected':''}>${v}</option>`).join('')}</select></div></div>`);
     document.querySelectorAll('.j-r, .j-l').forEach(el => el.innerHTML = [5,4,3,2,1,0].map(v=>`<option>${v}</option>`).join(''));
 
+    // Reflex Init
     const rBox = document.getElementById('reflex-box');
     ["Biceps", "Triceps", "Knee", "Ankle"].forEach(it => rBox.innerHTML += `<div class="row"><span class="label">${it} (R/L)</span><input type="text" class="ref-val" value="++/++" oninput="autoUpdate()"></div>`);
 
+    // MMSE Init
     const mBox = document.getElementById('mmse-box');
     mmseQs.forEach((q, i) => mBox.innerHTML += `<div class="mp-row" style="font-size:0.8rem;"><span>${i+1}. ${q}</span><select class="mmse-val" onchange="autoUpdate()"><option value="1">1</option><option value="0">0</option></select></div>`);
 
@@ -218,11 +294,16 @@ function autoUpdate() {
 
 function generateText() {
     const id = document.getElementById('v-id').value;
-    
-    // 抓取各項數據
     const nSel = document.querySelectorAll('.n-val');
     const nVals = Array.from(nSel).map(s => s.options[s.selectedIndex].text);
     const nScores = Array.from(nSel).map(s => parseInt(s.value));
+    const rawNIHSS = Array.from(nSel).map(s => s.value); 
+
+    const getCN = (name) => {
+        const el = document.querySelector(`.cn-input[data-name="${name}"]`);
+        return el ? el.value : "";
+    };
+
     const mpR = document.querySelectorAll('.mp-r'), mpL = document.querySelectorAll('.mp-l');
     const getMP = (i) => `${mpR[i].value}/${mpL[i].value}`;
     const uS = Array.from(document.querySelectorAll('.u-val')).map(el => el.value);
@@ -233,179 +314,4 @@ function generateText() {
     
     const mmseVals = Array.from(document.querySelectorAll('.mmse-val')).map(el => parseInt(el.value));
     const mTotal = mmseVals.reduce((a,b)=>a+b,0);
-    const mOriT = mmseVals.slice(0,5).reduce((a,b)=>a+b,0);
-    const mOriP = mmseVals.slice(5,10).reduce((a,b)=>a+b,0);
-    const mReg = mmseVals.slice(10,13).reduce((a,b)=>a+b,0);
-    const mSer7 = mmseVals.slice(13,18).reduce((a,b)=>a+b,0);
-    const mRecall = mmseVals.slice(18,21).reduce((a,b)=>a+b,0);
-
-    let t = `【Neurological examination】\n`;
-    t += `. Consciousness: ${nVals[0].split(' ')[1] || 'clear'}\n\n`;
-
-    t += `*Cranial nerve\n`;
-    t += `CN I :   smell, not performed , anosmia(-), hyposmia(-), hyperosmia(-), olfactory agnosia(-)\n`;
-    t += `CN II:   Visual acuity: Counts fingers(-), hand motion(-), light perception(-)\n`;
-    t += `         Visual fields: confrontation test-${nScores[4] == 0 ? 'intact' : 'impaired'}\n`;
-    t += `                        hemianopia(${nScores[4] > 0 ? '+' : '-'}, NIHSS Item 3: ${nVals[4]}), quadrantanopia(-)\n`;
-    t += `CN III, IV, VI:\n`;
-    t += `         Pupil: isocoric R/L: 3mm/3mm, light reflex R/L: +/+\n`;
-    t += `         EOM: NIHSS Gaze Score: ${nScores[3]} (${nVals[3]})\n`;
-    t += `         Primary gaze: at neutral positions without diplopia; Convergence: fair\n`;
-    t += `         Binocular diplopia(-); Pursuit: smooth, Saccade: no dysmetria\n`;
-    t += `CN V:    Corneal reflex(+/+)\n`;
-    t += `         Facial sensation: intact and symmetric to pinprick and light touch\n`;
-    t += `         Masseter R/L: full, Temporalis R/L: full\n`;
-    t += `CN VII : ${nScores[5] == 0 ? 'No Central/Peripheral type facial palsy' : 'Facial palsy present ('+nVals[5]+')'}\n`;
-    t += `         Nasolabial fold shallowing(${nScores[5] > 0 ? '+' : '-'})\n`;
-    t += `CN VIII: Bilateral hearing ability: fair by finger rubbing test\n`;
-    t += `         Weber test: no lateralization; Rinne test: bilatareal AC>BC\n`;
-    t += `CN IX,X: Uvula deviation(-), Gag reflex (+), dysarthria(${nScores[13] > 0 ? '+' : '-'})\n`;
-    t += `CN XI:   SCM: weakness(-), atrophy(-), 5/5; Trapezius: weakness(-), atrophy(-), 5/5\n`;
-    t += `CN XII:  Tongue protruding: deviation(-), atrophy(-), fasciculation(-)\n\n`;
-
-    t += `*Motor\n`;
-    t += `Motor inspection: ${document.getElementById('v-motor-ins').value}\n\n`;
-    t += `Muscle tone: ${document.getElementById('v-motor-tone').value}\n\n`;
-    t += `Muscle power:(R/L)\n`;
-    t += ` neck flexion/ extension  ${getMP(0)}\n`;
-    t += ` Shoulder abduction (C5)  ${getMP(1)}\n`;
-    t += ` Elbow flexion (C6) ${getMP(2)}; extension (C7) ${getMP(3)}\n`;
-    t += ` Wrist extension (C6) ${getMP(4)}\n`;
-    t += ` Finger flexion (C8)  ${getMP(5)}\n`;
-    t += ` Grasping (C8/T1)         ${getMP(6)}\n`;
-    t += ` Finger abduction (T1)    ${getMP(7)}\n`;
-    t += ` Hip flexion (L2)         ${getMP(8)}\n`;
-    t += ` Knee extension (L3)      ${getMP(9)}\n`;
-    t += ` Ankle dorsiflexion (L4)  ${getMP(10)}; plantarflexion(S1) ${getMP(11)}\n`;
-    t += ` Big toe extension (L5)   ${getMP(12)}\n\n`;
-    t += `pronator drift test: L/R: -/-;\n\n`;
-
-    t += `*Reflex\n`;
-    t += `Deep tendon reflex：(R/L)\n`;
-    t += ` Biceps(C5/6): ${refs[0].value}\n Triceps(C7): ${refs[1].value}\n Knee(L4): ${refs[2].value}\n Ankle(S1): ${refs[3].value}\n\n`;
-    t += `Babinski: ${document.getElementById('v-ref-path').value.split(',')[0].split(':')[1] || '-/-'}, Hoffman R/L: -/-, Jaw jerk: -\n\n`;
-
-    t += `*Sensation\n`;
-    t += `Light touch: ${document.getElementById('s-light').value}\n`;
-    t += `Pinprick & Temperature: ${document.getElementById('s-pin').value}\n`;
-    t += `Double simultaneous stimuli: no tactile neglect; Romberg test(${document.getElementById('s-romberg').value})\n\n`;
-    t += `Joint position (R, L):\n  Fingers: ${jR[0].value}/5, ${jL[0].value}/5\n  Toes: ${jR[1].value}/5, ${jL[1].value}/5\n`;
-    t += `Vibration (R, L):\n  Big toe: ${vR[0].value}/8, ${vL[0].value}/8\n  Finger: ${vR[1].value}/8, ${vL[1].value}/8\n\n`;
-
-    t += `UPDRS part III\n`;
-    t += `Speech: ${uS[0]}\nMask face: ${uS[1]}\n`;
-    t += `Resting tremor: RU/LU/RL/LL: ${uSub[0]}/${uSub[1]}/${uSub[2]}/${uSub[3]}\n`;
-    t += `Rigidity: Neck/RU/LU/RL/LL: ${uSub[6]}/${uSub[7]}/${uSub[8]}/${uSub[9]}/${uSub[10]}\n`;
-    t += `Finger tapping: R/L: ${uSub[11]}/${uSub[12]}\n`;
-    t += `Grasping: R/L: ${uSub[13]}/${uSub[14]}\n`;
-    t += `RAM: R/L: ${uSub[15]}/${uSub[16]}\n`;
-    t += `Foot tapping: R/L: ${uSub[17]}/${uSub[18]}\n`;
-    t += `Stand up: ${uS[2] || 0}; Posture: ${uS[3] || 0}; gait: ${uS[4] || 0}\n`;
-    t += `Pull test: ${uS[5] || 0}; Bradykinesia: ${uS[6] || 0}\n\n`;
-
-    t += `*Higher cortical functions/cognition\n`;
-    t += `. MMSE(${mTotal}/30):\n`;
-    t += `       - Orientation: time(${mOriT}/5) place(${mOriP}/5)\n`;
-    t += `       - 3-item registration(${mReg}/3)("黃色、生氣、火車")\n`;
-    t += `       - series-7(${mSer7}/5)\n`;
-    t += `       - 3-item recall(${mRecall}/3)\n`;
-    t += `       - Luria 3-step test: ${document.getElementById('v-cog-luria').value}\n\n`;
-
-    t += `NIHSS Total Score: ${document.getElementById('nihss-total').innerText.split(': ')[1]}\n`;
-    t += `Chart No: ${id}\n`;
-
-    document.getElementById('export-area').value = t;
-}
-
-function show(id) {
-    document.querySelectorAll('.sec').forEach(s => s.classList.add('hidden'));
-    document.getElementById('s-' + id).classList.remove('hidden');
-    document.querySelectorAll('.menu button').forEach(b => b.classList.remove('active'));
-    document.getElementById('b-' + id).classList.add('active');
-}
-
-// --- 歷史紀錄功能邏輯 ---
-
-function saveToHistory() {
-    const cid = document.getElementById('v-id').value;
-    if(!cid) return alert("請輸入病歷號碼再儲存！");
-
-    const record = {
-        time: new Date().toLocaleString(),
-        chartNo: cid,
-        noteContent: document.getElementById('export-area').value,
-        selects: Array.from(document.querySelectorAll('select')).map(s => s.value),
-        texts: Array.from(document.querySelectorAll('input[type="text"]')).map(t => t.value)
-    };
-
-    let history = JSON.parse(localStorage.getItem('ne_history_list') || '[]');
-    history.unshift(record); // 新的放前面
-    localStorage.setItem('ne_history_list', JSON.stringify(history));
-    
-    renderHistory();
-    alert("已成功儲存至歷史紀錄！");
-}
-
-function renderHistory() {
-    const listDiv = document.getElementById('history-list');
-    const history = JSON.parse(localStorage.getItem('ne_history_list') || '[]');
-    
-    if(history.length === 0) {
-        listDiv.innerHTML = `<p style="color:#999; text-align:center;">尚無歷史紀錄</p>`;
-        return;
-    }
-
-    listDiv.innerHTML = history.map((rec, index) => `
-        <div class="history-item" onclick="loadRecord(${index})">
-            <div class="history-info">
-                <span class="history-cid">Chart No: ${rec.chartNo}</span>
-                <span class="history-date">儲存時間: ${rec.time}</span>
-            </div>
-            <button class="btn-del" onclick="deleteRecord(event, ${index})">刪除</button>
-        </div>
-    `).join('');
-}
-
-function loadRecord(index) {
-    const history = JSON.parse(localStorage.getItem('ne_history_list') || '[]');
-    const rec = history[index];
-    
-    // 還原所有選擇與文字
-    document.querySelectorAll('select').forEach((s, i) => s.value = rec.selects[i]);
-    document.querySelectorAll('input[type="text"]').forEach((t, i) => t.value = rec.texts[i]);
-    document.getElementById('v-id').value = rec.chartNo;
-    
-    autoUpdate();
-    show('export'); // 直接連結到對應的 Export 供查看
-    alert(`已載入病歷號: ${rec.chartNo} 的資料`);
-}
-
-function deleteRecord(event, index) {
-    event.stopPropagation(); // 防止觸發 loadRecord
-    if(!confirm("確定要刪除此筆紀錄嗎？")) return;
-    
-    let history = JSON.parse(localStorage.getItem('ne_history_list') || '[]');
-    history.splice(index, 1);
-    localStorage.setItem('ne_history_list', JSON.stringify(history));
-    renderHistory();
-}
-
-function copyToClipboard() {
-    document.getElementById('export-area').select();
-    document.execCommand('copy');
-    alert("文字已複製");
-}
-
-function downloadTxt() {
-    const text = document.getElementById('export-area').value;
-    const blob = new Blob([text], {type: "text/plain"});
-    const a = document.createElement("a");
-    a.href = URL.createObjectURL(blob);
-    a.download = `NE_Report_${document.getElementById('v-id').value || 'patient'}.txt`;
-    a.click();
-}
-
-init(); show('nihss');
-</script>
-</body>
-</html>
+    const mOriT = mmseVals.slice(0,
