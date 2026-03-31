@@ -47,7 +47,7 @@
         .loc-item { font-size: 0.9rem; color: #444; margin: 3px 0; }
     </style>
 </head>
-<body>
+<body onload="init()">
 
 <div class="header">
     <div class="menu">
@@ -324,7 +324,8 @@ function init() {
     });
 
     const pBox = document.getElementById('patho-reflex-box');
-    const pathoOpts = ["mute", "-", "+", "++", "+++", "++++"].map(v => `<option value="${v}" ${v=='-'?'selected':''}>${v}</option>`).join('');
+    // --- 修正處：將選項改為只有 + 與 - ---
+    const pathoOpts = ["-", "+"].map(v => `<option value="${v}" ${v=='-'?'selected':''}>${v}</option>`).join('');
     ["Babinski", "Hoffman"].forEach(it => {
         pBox.innerHTML += `<div class="mp-row"><span>${it}</span><div>R:<select class="patho-r" onchange="autoUpdate()">${pathoOpts}</select> L:<select class="patho-l" onchange="autoUpdate()">${pathoOpts}</select></div></div>`;
     });
@@ -427,7 +428,7 @@ function generateText() {
     t += `CN I : smell(${getCN('not performed')}), anosmia(${getCN('anosmia')}), hyposmia(${getCN('hyposmia')}), hyperosmia(${getCN('hyperosmia')}), olfactory agnosia(${getCN('olfactory agnosia')})\n`;
     t += `CN II: Visual acuity: Counts fingers(${getCN('Counts fingers')}), hand motion(${getCN('hand motion')}), light perception(${getCN('light perception')})\n`;
     t += `       Visual fields: confrontation test-${getCN('confrontation test')}\n`;
-    t += `                      hemianopia(${getCN('hemianopia')}), quadrantanopia(${getCN('quadrantanopia')})\n`;
+    t += `                       hemianopia(${getCN('hemianopia')}), quadrantanopia(${getCN('quadrantanopia')})\n`;
     t += `CN III, IV, VI:\n`;
     t += `       Pupil: isocoric R/L: ${getCN('isocoric R/L')}, light reflex R/L: ${getCN('light reflex R/L')}, RAPD(${getCN('RAPD')})\n`;
     t += `       Extraocular movement: ${getCN('EOM')}; Primary gaze: ${getCN('Primary gaze')}\n`;
@@ -513,61 +514,59 @@ function saveToHistory() {
 
 function renderHistory() {
     const listDiv = document.getElementById('history-list');
-    const history = JSON.parse(localStorage.getItem('ne_history_v2') || '[]');
+    let history = JSON.parse(localStorage.getItem('ne_history_v2') || '[]');
     if(history.length === 0) {
-        listDiv.innerHTML = `<p style="color:#999; text-align:center;">尚無歷史紀錄</p>`;
+        listDiv.innerHTML = '<p style="color:#999; text-align:center;">尚無歷史紀錄</p>';
         return;
     }
-    listDiv.innerHTML = history.map((rec, index) => `
-        <div class="history-item" onclick="loadRecord(${index})">
+    listDiv.innerHTML = history.map((rec, idx) => `
+        <div class="history-item" onclick="loadHistory(${idx})">
             <div class="history-info">
-                <span class="history-cid">ID: ${rec.chartNo}</span>
+                <span class="history-cid">Chart: ${rec.chartNo}</span>
                 <span class="history-date">${rec.time}</span>
             </div>
-            <button class="btn-del" onclick="deleteRecord(event, ${index})">刪除</button>
+            <button class="btn-del" onclick="deleteHistory(event, ${idx})">刪除</button>
         </div>
     `).join('');
 }
 
-function loadRecord(index) {
-    const history = JSON.parse(localStorage.getItem('ne_history_v2') || '[]');
-    const rec = history[index];
-    const selects = document.querySelectorAll('select');
-    const texts = document.querySelectorAll('input[type="text"]');
-    if(rec.selects) rec.selects.forEach((v, i) => { if(selects[i]) selects[i].value = v; });
-    if(rec.texts) rec.texts.forEach((v, i) => { if(texts[i]) texts[i].value = v; });
+function loadHistory(idx) {
+    let history = JSON.parse(localStorage.getItem('ne_history_v2') || '[]');
+    const rec = history[idx];
     document.getElementById('v-id').value = rec.chartNo;
+    const selects = document.querySelectorAll('select');
+    rec.selects.forEach((val, i) => { if(selects[i]) selects[i].value = val; });
+    const texts = document.querySelectorAll('input[type="text"]');
+    rec.texts.forEach((val, i) => { if(texts[i]) texts[i].value = val; });
     autoUpdate();
     show('export');
 }
 
-function deleteRecord(event, index) {
-    event.stopPropagation();
-    if(!confirm("確定刪除？")) return;
+function deleteHistory(e, idx) {
+    e.stopPropagation();
+    if(!confirm("確定要刪除此筆紀錄嗎？")) return;
     let history = JSON.parse(localStorage.getItem('ne_history_v2') || '[]');
-    history.splice(index, 1);
+    history.splice(idx, 1);
     localStorage.setItem('ne_history_v2', JSON.stringify(history));
     renderHistory();
 }
 
 function copyToClipboard() {
-    const area = document.getElementById('export-area');
-    area.select();
+    const textArea = document.getElementById('export-area');
+    textArea.select();
     document.execCommand('copy');
-    alert("已複製到剪貼簿");
+    alert("已複製到剪貼簿！");
 }
 
 function downloadTxt() {
     const text = document.getElementById('export-area').value;
-    const blob = new Blob([text], {type: "text/plain"});
-    const a = document.createElement("a");
-    a.href = URL.createObjectURL(blob);
-    a.download = `NE_${document.getElementById('v-id').value || 'Report'}.txt`;
-    a.click();
+    const blob = new Blob([text], { type: 'text/plain' });
+    const anchor = document.createElement('a');
+    anchor.download = `NE_${document.getElementById('v-id').value || 'report'}.txt`;
+    anchor.href = window.URL.createObjectURL(blob);
+    anchor.click();
 }
-
-init(); 
-show('nihss');
 </script>
+
 </body>
 </html>
