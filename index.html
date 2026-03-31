@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>NE Note</title>
+    <title>NE Note Master Pro - 歷史紀錄增強版</title>
     <style>
         body { font-family: 'Consolas', 'Monaco', monospace; background: #f4f7f6; color: #333; margin: 0; padding-bottom: 150px; }
         .header { background: #2c3e50; padding: 10px; position: sticky; top: 0; z-index: 1000; box-shadow: 0 2px 5px rgba(0,0,0,0.2); }
@@ -109,6 +109,8 @@
         <div class="section-title">MMSE 智能評估</div>
         <div id="mmse-box"></div>
         <div class="sub-title">Cognitive Details</div>
+        <div class="row"><span>Recall Choice (Correct):</span><input type="text" id="v-mmse-recall-choice" placeholder="數量" oninput="autoUpdate()"></div>
+        <div class="row"><span>Writing Content:</span><input type="text" id="v-mmse-writing-content" value="我是一個好人" oninput="autoUpdate()"></div>
         <div class="row"><span>Luria 3-step:</span><input type="text" id="v-cog-luria" value="intact" oninput="autoUpdate()"></div>
         <div class="row"><span>Language:</span><input type="text" id="v-cog-lang" value="fluent" oninput="autoUpdate()"></div>
     </div>
@@ -224,7 +226,6 @@ const mpItems = ["Neck flex/ext", "Shoulder abd (C5)", "Elbow flex (C6)", "Elbow
 
 // --- 初始化函數 ---
 function init() {
-    // 初始化 CN
     const cnBox = document.getElementById('cn-container');
     cnData.forEach(group => {
         let html = `<div class="item-box"><span class="item-label">${group.label}</span>`;
@@ -243,13 +244,11 @@ function init() {
         cnBox.innerHTML += html + `</div>`;
     });
 
-    // 初始化 NIHSS
     const nBox = document.getElementById('nihss-container');
     nihssFull.forEach(item => {
         nBox.innerHTML += `<div class="item-box"><span class="item-label">${item.n}</span><select class="n-val" onchange="autoUpdate()">${item.opts.map((o,v)=>`<option value="${v}">${o}</option>`).join('')}</select></div>`;
     });
 
-    // 初始化 UPDRS
     const uBox = document.getElementById('updrs-container');
     updrsFull.forEach(item => {
         let html = `<div class="item-box"><span class="item-label">${item.n}</span>`;
@@ -258,14 +257,12 @@ function init() {
         uBox.innerHTML += html + `</div>`;
     });
 
-    // 初始化 MP
     const mpBox = document.getElementById('mp-box');
     mpItems.forEach(it => {
         let opts = [5,4,3,2,1,0].map(v => `<option value="${v}" ${v==5?'selected':''}>${v}</option>`).join('');
         mpBox.innerHTML += `<div class="mp-row"><span>${it}</span><div>R:<select class="mp-r" onchange="autoUpdate()">${opts}</select> L:<select class="mp-l" onchange="autoUpdate()">${opts}</select></div></div>`;
     });
 
-    // 初始化 Sensory
     const jvBox = document.getElementById('joint-vibe-box');
     ["Fingers", "Toes"].forEach(it => jvBox.innerHTML += `<div class="mp-row"><span>${it} Joint Position</span><div>R:<select class="j-r" onchange="autoUpdate()"></select> L:<select class="j-l" onchange="autoUpdate()"></select></div></div>`);
     document.querySelectorAll('.j-r, .j-l').forEach(el => el.innerHTML = [5,4,3,2,1,0].map(v=>`<option ${v==5?'selected':''}>${v}</option>`).join(''));
@@ -273,11 +270,9 @@ function init() {
     const vOpts = []; for(let i=80; i>=0; i-=5) vOpts.push((i/10).toFixed(1));
     ["Big toe", "Finger"].forEach(it => jvBox.innerHTML += `<div class="mp-row"><span>${it} Vibration</span><div>R:<select class="v-r" onchange="autoUpdate()">${vOpts.map(v=>`<option ${v=='8.0'?'selected':''}>${v}</option>`).join('')}</select> L:<select class="v-l" onchange="autoUpdate()">${vOpts.map(v=>`<option ${v=='8.0'?'selected':''}>${v}</option>`).join('')}</select></div></div>`);
 
-    // 初始化 Reflex
     const rBox = document.getElementById('reflex-box');
     ["Biceps", "Triceps", "Knee", "Ankle"].forEach(it => rBox.innerHTML += `<div class="row"><span class="label">${it} (R/L)</span><input type="text" class="ref-val" value="++/++" oninput="autoUpdate()"></div>`);
 
-    // 初始化 MMSE
     const mBox = document.getElementById('mmse-box');
     mmseQs.forEach((q, i) => mBox.innerHTML += `<div class="mp-row" style="font-size:0.8rem;"><span>${i+1}. ${q}</span><select class="mmse-val" onchange="autoUpdate()"><option value="1">1</option><option value="0">0</option></select></div>`);
 
@@ -310,6 +305,7 @@ function generateText() {
     const jR = document.querySelectorAll('.j-r'), jL = document.querySelectorAll('.j-l');
     const vR = document.querySelectorAll('.v-r'), vL = document.querySelectorAll('.v-l');
     
+    // MMSE 計算
     const mmseVals = Array.from(document.querySelectorAll('.mmse-val')).map(el => parseInt(el.value));
     const mTotal = mmseVals.reduce((a,b)=>a+b,0);
     const mOriT = mmseVals.slice(0,5).reduce((a,b)=>a+b,0);
@@ -317,6 +313,21 @@ function generateText() {
     const mReg = mmseVals.slice(10,13).reduce((a,b)=>a+b,0);
     const mSer7 = mmseVals.slice(13,18).reduce((a,b)=>a+b,0);
     const mRecall = mmseVals.slice(18,21).reduce((a,b)=>a+b,0);
+    const mNaming = mmseVals.slice(21,23).reduce((a,b)=>a+b,0);
+    const mRepeat = mmseVals[23];
+    const mAction = mmseVals[24];
+    const m3Step = mmseVals.slice(25,28).reduce((a,b)=>a+b,0);
+    const mWriting = mmseVals[28];
+    const mConst = mmseVals[29];
+
+    // NIHSS 格式化 (3-3-4-5 字串組合)
+    const nVals = Array.from(document.querySelectorAll('.n-val')).map(el => el.value);
+    const nTotal = nVals.reduce((a,b)=>a+parseInt(b),0);
+    const nPart1 = nVals.slice(0,3).join('');
+    const nPart2 = nVals.slice(3,6).join('');
+    const nPart3 = nVals.slice(6,10).join('');
+    const nPart4 = nVals.slice(10,15).join('');
+    const nihssLine = `NIHSS = ${nTotal} (${nPart1} ${nPart2} ${nPart3} ${nPart4})`;
 
     let t = `【Neurological examination】\n`;
     t += `. Consciousness: ${document.querySelectorAll('.n-val')[0].options[document.querySelectorAll('.n-val')[0].selectedIndex].text.split(' ')[1] || 'clear'}\n\n`;
@@ -368,11 +379,18 @@ function generateText() {
     t += ` R/L: Tapping ${uSub[11]}/${uSub[12]}, Grasp ${uSub[13]}/${uSub[14]}, RAM ${uSub[15]}/${uSub[16]}, Foot ${uSub[17]}/${uSub[18]}\n`;
     t += ` Gait/Pull/Stand/Brady: ${uS[11] || 0}/${uS[12] || 0}/${uS[9] || 0}/${uS[13] || 0}\n\n`;
 
-    t += `*Cognition\n`;
-    t += ` MMSE(${mTotal}/30): Ori(${mOriT+mOriP}), Reg(${mReg}), Ser7(${mSer7}), Recall(${mRecall})\n`;
+    t += `*Mental Status\n`;
+    t += ` MMSE Total: ${mTotal}/30\n`;
+    t += ` - Orientation: time(${mOriT}/5) place(${mOriP}/5)\n`;
+    t += ` - 3-item registration(${mReg}/3)("黃色、生氣、火車")\n`;
+    t += ` - series-7(${mSer7}/5)\n`;
+    t += ` - 3-item recall(${mRecall}/3)(${document.getElementById('v-mmse-recall-choice').value || '__'} correct by choice, another failed even choice)\n`;
+    t += ` - naming(${mNaming}/2) repeat(${mRepeat}/1) reading(${mAction}/1) writing(${mWriting}/1)("${document.getElementById('v-mmse-writing-content').value || '____'}")\n`;
+    t += ` - 3-step orders(${m3Step}/3)\n`;
+    t += ` - construction(${mConst}/1)\n\n`;
     t += ` Luria: ${document.getElementById('v-cog-luria').value}; Language: ${document.getElementById('v-cog-lang').value}\n\n`;
 
-    t += `NIHSS Total: ${document.getElementById('nihss-total').innerText.split(': ')[1]}\n`;
+    t += `${nihssLine}\n`;
     t += `Chart No: ${id}\n`;
 
     document.getElementById('export-area').value = t;
@@ -386,22 +404,18 @@ function show(id) {
     if(targetBtn) targetBtn.classList.add('active');
 }
 
-// --- 歷史紀錄邏輯 ---
 function saveToHistory() {
     const cid = document.getElementById('v-id').value;
     if(!cid) return alert("請輸入病歷號碼再儲存！");
-
     const record = {
         time: new Date().toLocaleString(),
         chartNo: cid,
         selects: Array.from(document.querySelectorAll('select')).map(s => s.value),
         texts: Array.from(document.querySelectorAll('input[type="text"]')).map(t => t.value)
     };
-
     let history = JSON.parse(localStorage.getItem('ne_history_v2') || '[]');
     history.unshift(record);
     localStorage.setItem('ne_history_v2', JSON.stringify(history));
-    
     renderHistory();
     alert("儲存成功！");
 }
@@ -429,11 +443,9 @@ function loadRecord(index) {
     const rec = history[index];
     const selects = document.querySelectorAll('select');
     const texts = document.querySelectorAll('input[type="text"]');
-    
     if(rec.selects) rec.selects.forEach((v, i) => { if(selects[i]) selects[i].value = v; });
     if(rec.texts) rec.texts.forEach((v, i) => { if(texts[i]) texts[i].value = v; });
     document.getElementById('v-id').value = rec.chartNo;
-    
     autoUpdate();
     show('export');
 }
@@ -464,7 +476,7 @@ function downloadTxt() {
 }
 
 init(); 
-show('cn');
+show('nihss');
 </script>
 </body>
 </html>
