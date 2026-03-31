@@ -45,7 +45,8 @@
 <body>
 
 <div class="header">
-    <div class="menu">
+    <div class="menu
+        <button onclick="show('cn')" id="b-cn">CN</button>
         <button onclick="show('nihss')" id="b-nihss">NIHSS</button>
         <button onclick="show('updrs')" id="b-updrs">UPDRS</button>
         <button onclick="show('motor')" id="b-motor">Motor</button>
@@ -63,6 +64,11 @@
         <button onclick="saveToHistory()" class="btn-save">儲存至歷史清單</button>
     </div>
 
+  <div id="s-cn" class="sec hidden">
+    <div class="section-title">Cranial Nerves (CN)</div>
+    <div id="cn-container"></div>
+</div>
+  
     <div id="s-nihss" class="sec">
         <div class="section-title">NIHSS 腦中風量表</div>
         <div id="nihss-container"></div>
@@ -130,6 +136,53 @@
 </div>
 
 <script>
+  // --- CN項目內容 ---
+  const cnData = [
+    { label: "CN I: smell", items: ["not performed", "anosmia", "hyposmia", "hyperosmia", "olfactory agnosia"], type: 'select' },
+    { label: "CN II: Visual acuity", items: ["Counts fingers", "hand motion", "light perception"], type: 'select' },
+    { label: "CN II: Visual fields", items: [
+        { n: "confrontation test", type: 'text', def: "intact" },
+        { n: "hemianopia", type: 'select' },
+        { n: "quadrantanopia", type: 'select' }
+    ]},
+    { label: "CN III, IV, VI: Pupil", items: [
+        { n: "isocoric R/L", type: 'text', def: "3mm/3mm" },
+        { n: "light reflex R/L", type: 'text', def: "+/+" },
+        { n: "RAPD", type: 'text', def: "-/-" }
+    ]},
+    { label: "CN III, IV, VI: Others", items: [
+        { n: "EOM", type: 'text', def: "full" },
+        { n: "Primary gaze", type: 'text', def: "at neutral positions without diplopia" },
+        { n: "Convergence", type: 'text', def: "fair" },
+        { n: "Binocular diplopia", type: 'select' },
+        { n: "Pursuit", type: 'text', def: "smooth" },
+        { n: "Saccade", type: 'text', def: "no dysmetria" }
+    ]},
+    { label: "CN V", items: [
+        { n: "Corneal reflex", type: 'text', def: "+/+" },
+        { n: "Facial sensation", type: 'text', def: "intact and symmetric to pinprick and light touch" },
+        { n: "Masseter R/L", type: 'text', def: "full" },
+        { n: "Temporalis R/L", type: 'text', def: "full" }
+    ]},
+    { label: "CN VII", items: [
+        { n: "Facial palsy type", type: 'text', def: "No Central/Peripheral type facial palsy" },
+        { n: "Nasolabial fold shallowing", type: 'select' }
+    ]},
+    { label: "CN VIII", items: [
+        { n: "Hearing ability", type: 'text', def: "fair by finger rubbing test" },
+        { n: "Weber test", type: 'text', def: "no lateralization" },
+        { n: "Rinne test", type: 'text', def: "bilatareal AC>BC" }
+    ]},
+    { label: "CN IX, X", items: [
+        { n: "Uvula deviation", type: 'select' },
+        { n: "Gag reflex", type: 'text', def: "+" },
+        { n: "dysarthria", type: 'select' }
+    ]},
+    { label: "CN XI (SCM)", items: ["weakness", "atrophy"], type: 'select', extra: "5/5" },
+    { label: "CN XI (Trapezius)", items: ["weakness", "atrophy"], type: 'select', extra: "5/5" },
+    { label: "CN XII", items: ["deviation", "atrophy", "fasciculation"], type: 'select' }
+];
+  
 // --- NIHSS 數據結構 (維持現狀) ---
 const nihssFull = [
     {n:"1a. 意識程度", opts:["0 清醒","1 嗜睡","2 呆滯","3 昏迷"]},
@@ -201,7 +254,30 @@ function init() {
 
     const mBox = document.getElementById('mmse-box');
     mmseQs.forEach((q, i) => mBox.innerHTML += `<div class="mp-row" style="font-size:0.8rem;"><span>${i+1}. ${q}</span><select class="mmse-val" onchange="autoUpdate()"><option value="1">1</option><option value="0">0</option></select></div>`);
-
+    // 在 init() 的最後一行 autoUpdate(); 之前加入
+const cnBox = document.getElementById('cn-container');
+cnData.forEach((group, gIdx) => {
+    let html = `<div class="item-box"><span class="item-label">${group.label}</span>`;
+    group.items.forEach((it, iIdx) => {
+        const name = typeof it === 'string' ? it : it.n;
+        const type = typeof it === 'string' ? group.type : it.type;
+        const defVal = it.def || "";
+        
+        html += `<div class="sub-row"><span>${name}:</span>`;
+        if (type === 'select') {
+            html += `<select class="cn-input" data-name="${name}" onchange="autoUpdate()">
+                        <option value="-">-</option>
+                        <option value="+">+</option>
+                        <option value="not performed">not performed</option>
+                     </select>`;
+        } else {
+            html += `<input type="text" class="cn-input" data-name="${name}" value="${defVal}" oninput="autoUpdate()">`;
+        }
+        html += `</div>`;
+    });
+    cnBox.innerHTML += html + `</div>`;
+});
+  
     renderHistory();
     autoUpdate();
 }
@@ -217,8 +293,11 @@ function autoUpdate() {
 }
 
 function generateText() {
-    const id = document.getElementById('v-id').value;
-    
+    const id = document.getElementById('v-id').value;
+    const getCN = (name) => {
+        const el = document.querySelector(`.cn-input[data-name="${name}"]`);
+        return el ? el.value : "";
+    };
     // 抓取各項數據
     const nSel = document.querySelectorAll('.n-val');
     const nVals = Array.from(nSel).map(s => s.options[s.selectedIndex].text);
@@ -239,29 +318,33 @@ function generateText() {
     const mSer7 = mmseVals.slice(13,18).reduce((a,b)=>a+b,0);
     const mRecall = mmseVals.slice(18,21).reduce((a,b)=>a+b,0);
 
-    let t = `【Neurological examination】\n`;
-    t += `. Consciousness: ${nVals[0].split(' ')[1] || 'clear'}\n\n`;
 
-    t += `*Cranial nerve\n`;
-    t += `CN I :   smell, not performed , anosmia(-), hyposmia(-), hyperosmia(-), olfactory agnosia(-)\n`;
-    t += `CN II:   Visual acuity: Counts fingers(-), hand motion(-), light perception(-)\n`;
-    t += `         Visual fields: confrontation test-${nScores[4] == 0 ? 'intact' : 'impaired'}\n`;
-    t += `                        hemianopia(${nScores[4] > 0 ? '+' : '-'}, NIHSS Item 3: ${nVals[4]}), quadrantanopia(-)\n`;
-    t += `CN III, IV, VI:\n`;
-    t += `         Pupil: isocoric R/L: 3mm/3mm, light reflex R/L: +/+\n`;
-    t += `         EOM: NIHSS Gaze Score: ${nScores[3]} (${nVals[3]})\n`;
-    t += `         Primary gaze: at neutral positions without diplopia; Convergence: fair\n`;
-    t += `         Binocular diplopia(-); Pursuit: smooth, Saccade: no dysmetria\n`;
-    t += `CN V:    Corneal reflex(+/+)\n`;
-    t += `         Facial sensation: intact and symmetric to pinprick and light touch\n`;
-    t += `         Masseter R/L: full, Temporalis R/L: full\n`;
-    t += `CN VII : ${nScores[5] == 0 ? 'No Central/Peripheral type facial palsy' : 'Facial palsy present ('+nVals[5]+')'}\n`;
-    t += `         Nasolabial fold shallowing(${nScores[5] > 0 ? '+' : '-'})\n`;
-    t += `CN VIII: Bilateral hearing ability: fair by finger rubbing test\n`;
-    t += `         Weber test: no lateralization; Rinne test: bilatareal AC>BC\n`;
-    t += `CN IX,X: Uvula deviation(-), Gag reflex (+), dysarthria(${nScores[13] > 0 ? '+' : '-'})\n`;
-    t += `CN XI:   SCM: weakness(-), atrophy(-), 5/5; Trapezius: weakness(-), atrophy(-), 5/5\n`;
-    t += `CN XII:  Tongue protruding: deviation(-), atrophy(-), fasciculation(-)\n\n`;
+    let t = `【Neurological examination】\n`;
+    t += `. Consciousness: ${document.querySelectorAll('.n-val')[0].options[document.querySelectorAll('.n-val')[0].selectedIndex].text.split(' ')[1] || 'clear'}\n\n`;
+
+    t += `*Cranial nerve\n`;
+    t += `CN I :   smell(${getCN('not performed')}), anosmia(${getCN('anosmia')}), hyposmia(${getCN('hyposmia')}), hyperosmia(${getCN('hyperosmia')}), olfactory agnosia(${getCN('olfactory agnosia')})\n`;
+    t += `CN II:   Visual acuity: Counts fingers(${getCN('Counts fingers')}), hand motion(${getCN('hand motion')}), light perception(${getCN('light perception')})\n`;
+    t += `         Visual fields: confrontation test-${getCN('confrontation test')}\n`;
+    t += `                        hemianopia(${getCN('hemianopia')}), quadrantanopia(${getCN('quadrantanopia')})\n`;
+    t += `CN III, IV, VI:\n`;
+    t += `         Pupil: isocoric R/L: ${getCN('isocoric R/L')}, light reflex R/L: ${getCN('light reflex R/L')}, RAPD(${getCN('RAPD')})\n`;
+    t += `         EOM: ${getCN('EOM')}\n`;
+    t += `         Primary gaze: ${getCN('Primary gaze')}; \n         Convergence: ${getCN('Convergence')}\n`;
+    t += `         Binocular diplopia(${getCN('Binocular diplopia')}); Pursuit: ${getCN('Pursuit')}, Saccade: ${getCN('Saccade')}\n`;
+    t += `CN V:    Corneal reflex(${getCN('Corneal reflex')})\n`;
+    t += `         Facial sensation: ${getCN('Facial sensation')}\n`;
+    t += `         Masseter R/L: ${getCN('Masseter R/L')}, Temporalis R/L: ${getCN('Temporalis R/L')}\n`;
+    t += `CN VII : ${getCN('Facial palsy type')}\n`;
+    t += `         Nasolabial fold shallowing(${getCN('Nasolabial fold shallowing')})\n`;
+    t += `CN VIII: Bilateral hearing ability: ${getCN('Hearing ability')}\n`;
+    t += `         Weber test: ${getCN('Weber test')}; Rinne test: ${getCN('Rinne test')}\n`;
+    t += `CN IX,X: Uvula deviation(${getCN('Uvula deviation')}), Gag reflex (${getCN('Gag reflex')}), dysarthria(${getCN('dysarthria')})\n`;
+    t += `CN XI:   SCM: weakness(${getCN('weakness')}), atrophy(${getCN('atrophy')}), 5/5; Trapezius: weakness(${getCN('weakness')}), atrophy(${getCN('atrophy')}), 5/5\n`;
+    t += `CN XII:  Tongue protruding: deviation(${getCN('deviation')}), atrophy(${getCN('atrophy')}), fasciculation(${getCN('fasciculation')})\n\n`;
+
+    // --- 以下維持原本 Motor, Reflex, Sensory, UPDRS, MMSE 的生成邏輯 ---
+    // (請直接銜接你原本 generateText 剩下的 Motor 以下的部分)
 
     t += `*Motor\n`;
     t += `Motor inspection: ${document.getElementById('v-motor-ins').value}\n\n`;
