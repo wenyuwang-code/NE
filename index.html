@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>NE Note Master Pro - 醫師專用增強版</title>
+    <title>小笨腦子記不住NE</title>
     <style>
         body { font-family: 'Consolas', 'Monaco', monospace; background: #f4f7f6; color: #333; margin: 0; padding-bottom: 150px; }
         .header { background: #2c3e50; padding: 10px; position: sticky; top: 0; z-index: 1000; box-shadow: 0 2px 5px rgba(0,0,0,0.2); }
@@ -42,7 +42,6 @@
         
         .btn-save { background: #e67e22 !important; font-weight: bold; color: white; border: none; padding: 10px; border-radius: 4px; cursor: pointer; }
 
-        /* 新增：定位診斷樣式 */
         #localization-display { margin-top: 15px; padding: 15px; background: #fff3e0; border-left: 5px solid #ff9800; font-family: sans-serif; }
         .loc-title { font-weight: bold; color: #e65100; margin-bottom: 5px; display: block; }
         .loc-item { font-size: 0.9rem; color: #444; margin: 3px 0; }
@@ -132,7 +131,8 @@
     <div id="s-reflex" class="sec hidden">
         <div class="section-title">Deep Tendon Reflexes</div>
         <div id="reflex-box"></div>
-        <div class="row"><div class="label">Pathological</div><input type="text" id="v-ref-path" value="Babinski: -/-, Hoffman: -/-" oninput="autoUpdate()"></div>
+        <div class="sub-title">Pathological Reflexes</div>
+        <div id="patho-reflex-box"></div>
     </div>
 
     <div id="s-sensory" class="sec hidden">
@@ -269,7 +269,7 @@ const updrsFull = [
 ];
 
 const mmseQs = ["年份","季節","日期","禮拜","月份","省/市","縣/市","區/鄉鎮","醫院","樓層","複述:藍","複述:悲","複述:火","100-7","93-7","86-7","79-7","72-7","回憶:藍","回憶:悲","回憶:火","辨認:手錶","辨認:鉛筆","複誦句子","閉眼動作","拿紙","摺紙","放紙","寫句子","畫圖"];
-const mpItems = ["Neck flex/ext", "Shoulder abd (C5)", "Elbow flex (C6)", "Elbow ext (C7)", "Wrist ext (C6)", "Finger flex (C8)", "Grasping (C8/T1)", "Finger abd (T1)", "Hip flex (L2)", "Knee ext (L3)", "Ankle dorsi (L4)", "Ankle plantar (S1)", "Big toe ext (L5)"];
+const mpItems = ["Neck flexion/extension", "Shoulder abduction (C5)", "Elbow flexion (C6)", "Elbow extension (C7)", "Wrist extension (C6)", "Finger flexion (C8)", "Grasping (C8/T1)", "Finger abduction (T1)", "Hip flexion (L2)", "Knee extension (L3)", "Ankle dorsiflexion (L4)", "Ankle plantarflexion (S1)", "Big toe extension (L5)"];
 
 // --- 初始化函數 ---
 function init() {
@@ -318,7 +318,16 @@ function init() {
     ["Big toe", "Finger"].forEach(it => jvBox.innerHTML += `<div class="mp-row"><span>${it} Vibration</span><div>R:<select class="v-r" onchange="autoUpdate()">${vOpts.map(v=>`<option ${v=='8.0'?'selected':''}>${v}</option>`).join('')}</select> L:<select class="v-l" onchange="autoUpdate()">${vOpts.map(v=>`<option ${v=='8.0'?'selected':''}>${v}</option>`).join('')}</select></div></div>`);
 
     const rBox = document.getElementById('reflex-box');
-    ["Biceps", "Triceps", "Knee", "Ankle"].forEach(it => rBox.innerHTML += `<div class="row"><span class="label">${it} (R/L)</span><input type="text" class="ref-val" value="++/++" oninput="autoUpdate()"></div>`);
+    const refOpts = ["mute", "-", "+", "++", "+++", "++++"].map(v => `<option value="${v}" ${v=='++'?'selected':''}>${v}</option>`).join('');
+    ["Biceps", "Triceps", "Knee", "Ankle"].forEach(it => {
+        rBox.innerHTML += `<div class="mp-row"><span>${it}</span><div>R:<select class="ref-r" onchange="autoUpdate()">${refOpts}</select> L:<select class="ref-l" onchange="autoUpdate()">${refOpts}</select></div></div>`;
+    });
+
+    const pBox = document.getElementById('patho-reflex-box');
+    const pathoOpts = ["mute", "-", "+", "++", "+++", "++++"].map(v => `<option value="${v}" ${v=='-'?'selected':''}>${v}</option>`).join('');
+    ["Babinski", "Hoffman"].forEach(it => {
+        pBox.innerHTML += `<div class="mp-row"><span>${it}</span><div>R:<select class="patho-r" onchange="autoUpdate()">${pathoOpts}</select> L:<select class="patho-l" onchange="autoUpdate()">${pathoOpts}</select></div></div>`;
+    });
 
     const mBox = document.getElementById('mmse-box');
     mmseQs.forEach((q, i) => mBox.innerHTML += `<div class="mp-row" style="font-size:0.8rem;"><span>${i+1}. ${q}</span><select class="mmse-val" onchange="autoUpdate()"><option value="1">1</option><option value="0">0</option></select></div>`);
@@ -344,7 +353,6 @@ function generateText() {
         return el ? el.value : "";
     };
     
-    // GCS 計算邏輯
     const gE = document.getElementById('gcs-e').value;
     const gV = document.getElementById('gcs-v').value;
     const gM = document.getElementById('gcs-m').value;
@@ -355,11 +363,16 @@ function generateText() {
     const getMP = (i) => `${mpR[i].value}/${mpL[i].value}`;
     const uS = Array.from(document.querySelectorAll('.u-val')).map(el => el.options[el.selectedIndex].text);
     const uSub = Array.from(document.querySelectorAll('.u-val-sub')).map(el => el.value);
-    const refs = document.querySelectorAll('.ref-val');
+    
+    const refR = document.querySelectorAll('.ref-r'), refL = document.querySelectorAll('.ref-l');
+    const getRef = (i) => `${refR[i].value}/${refL[i].value}`;
+    
+    const pathoR = document.querySelectorAll('.patho-r'), pathoL = document.querySelectorAll('.patho-l');
+    const getPatho = (i) => `${pathoR[i].value}/${pathoL[i].value}`;
+
     const jR = document.querySelectorAll('.j-r'), jL = document.querySelectorAll('.j-l');
     const vR = document.querySelectorAll('.v-r'), vL = document.querySelectorAll('.v-l');
     
-    // MMSE 計算
     const mmseVals = Array.from(document.querySelectorAll('.mmse-val')).map(el => parseInt(el.value));
     const mTotal = mmseVals.reduce((a,b)=>a+b,0);
     const mOriT = mmseVals.slice(0,5).reduce((a,b)=>a+b,0);
@@ -374,7 +387,6 @@ function generateText() {
     const mWriting = mmseVals[28];
     const mConst = mmseVals[29];
 
-    // NIHSS 格式化
     const nVals = Array.from(document.querySelectorAll('.n-val')).map(el => el.value);
     const nTotal = nVals.reduce((a,b)=>a+parseInt(b),0);
     const nPart1 = nVals.slice(0,3).join('');
@@ -383,39 +395,30 @@ function generateText() {
     const nPart4 = nVals.slice(10,15).join('');
     const nihssLine = `NIHSS = ${nTotal} (${nPart1} ${nPart2} ${nPart3} ${nPart4})`;
 
-    // Localization 邏輯推論
     let locHints = [];
-    // Rule L1: Cortical signs
     if (parseInt(nVals[12]) > 0 || parseInt(nVals[14]) > 0) locHints.push("Cortical involvement (Aphasia/Neglect).");
     
-    // Rule L2: UMN pattern
-    const babs = document.getElementById('v-ref-path').value;
+    const isBabinskiPos = pathoR[0].value.includes('+') || pathoL[0].value.includes('+');
     const tone = document.getElementById('v-motor-tone').value;
-    if (babs.includes('+') && tone.includes('spastic')) locHints.push("Upper Motor Neuron (UMN) lesion pattern.");
+    if (isBabinskiPos && tone.includes('spastic')) locHints.push("Upper Motor Neuron (UMN) lesion pattern.");
 
-    // Rule L3 & Lacunar detection
     const isWeakR = Array.from(mpR).some(el => el.value < 5);
     const isWeakL = Array.from(mpL).some(el => el.value < 5);
     if (isWeakR || isWeakL) {
         locHints.push(isWeakR ? "Right Hemiparesis." : "Left Hemiparesis.");
-        // Check if symmetric (Face/Arm/Leg NIHSS consistent)
         if (nVals[4] === nVals[5] && nVals[5] === nVals[7]) locHints.push("Lacunar syndrome suspected (Symmetric weakness).");
     }
 
-    // Crossed Signs
     const hasRightCN = Array.from(document.querySelectorAll('.cn-input')).some(el => el.value === '+' && el.closest('.item-box').innerText.includes('R'));
     const hasLeftCN = Array.from(document.querySelectorAll('.cn-input')).some(el => el.value === '+' && el.closest('.item-box').innerText.includes('L'));
     if ((hasLeftCN && isWeakR) || (hasRightCN && isWeakL)) locHints.push("Suspect Brainstem lesion (Crossed hemiplegia).");
 
-    // Myelopathy
     const sPin = document.getElementById('s-pin').value;
     if (sPin.toLowerCase().includes('t')) locHints.push(`Suspect spinal cord lesion at ${sPin.toUpperCase()} level.`);
 
-    // 更新介面
     document.getElementById('loc-content').innerHTML = locHints.length > 0 ? 
         locHints.map(h => `<div class="loc-item">• ${h}</div>`).join('') : "輸入資料以進行定位分析...";
 
-    // 組合 Note
     let t = `【Neurological examination】\n`;
     t += `${gcsNoteLine}\n`;
     t += `. Consciousness: ${document.querySelectorAll('.n-val')[0].options[document.querySelectorAll('.n-val')[0].selectedIndex].text.split(' ')[1] || 'clear'}\n\n`;
@@ -427,31 +430,31 @@ function generateText() {
     t += `                      hemianopia(${getCN('hemianopia')}), quadrantanopia(${getCN('quadrantanopia')})\n`;
     t += `CN III, IV, VI:\n`;
     t += `       Pupil: isocoric R/L: ${getCN('isocoric R/L')}, light reflex R/L: ${getCN('light reflex R/L')}, RAPD(${getCN('RAPD')})\n`;
-    t += `       EOM: ${getCN('EOM')}; Primary gaze: ${getCN('Primary gaze')}\n`;
+    t += `       Extraocular movement: ${getCN('EOM')}; Primary gaze: ${getCN('Primary gaze')}\n`;
     t += `       Convergence: ${getCN('Convergence')}; Binocular diplopia(${getCN('Binocular diplopia')})\n`;
     t += `       Pursuit: ${getCN('Pursuit')}; Saccade: ${getCN('Saccade')}\n`;
     t += `CN V:  Corneal reflex(${getCN('Corneal reflex')}); Facial sensation: ${getCN('Facial sensation')}\n`;
     t += `       Masseter R/L: ${getCN('Masseter R/L')}, Temporalis R/L: ${getCN('Temporalis R/L')}\n`;
     t += `CN VII : ${getCN('Facial palsy type')}; Nasolabial fold shallowing(${getCN('Nasolabial fold shallowing')})\n`;
     t += `CN VIII: Hearing: ${getCN('Hearing ability')}; Weber: ${getCN('Weber test')}; Rinne: ${getCN('Rinne test')}\n`;
-    t += `CN IX,X: Uvula dev(${getCN('Uvula deviation')}), Gag(${getCN('Gag reflex')}), dysarthria(${getCN('dysarthria')})\n`;
-    t += `CN XI:  SCM: weak(${getCN('weakness')}), atrophy(${getCN('atrophy')}); Trapezius: weak(${getCN('weakness')}), atrophy(${getCN('atrophy')})\n`;
-    t += `CN XII: Tongue: dev(${getCN('deviation')}), atrophy(${getCN('atrophy')}), fasc(${getCN('fasciculation')})\n\n`;
+    t += `CN IX,X: Uvula deviation(${getCN('Uvula deviation')}), Gag reflex(${getCN('Gag reflex')}), dysarthria(${getCN('dysarthria')})\n`;
+    t += `CN XI:  Sternocleidomastoid: weakness(${getCN('weakness')}), atrophy(${getCN('atrophy')}); Trapezius: weakness(${getCN('weakness')}), atrophy(${getCN('atrophy')})\n`;
+    t += `CN XII: Tongue: deviation(${getCN('deviation')}), atrophy(${getCN('atrophy')}), fasciculation(${getCN('fasciculation')})\n\n`;
 
     t += `*Motor\n`;
     t += `Motor inspection: ${document.getElementById('v-motor-ins').value}\n`;
     t += `Muscle tone: ${document.getElementById('v-motor-tone').value}\n`;
     t += `Muscle power:(R/L)\n`;
-    t += ` Neck F/E: ${getMP(0)}; Shoulder abd: ${getMP(1)}\n`;
-    t += ` Elbow F/E: ${getMP(2)}/${getMP(3)}; Wrist ext: ${getMP(4)}\n`;
-    t += ` Finger flex/Grasp/abd: ${getMP(5)}/${getMP(6)}/${getMP(7)}\n`;
-    t += ` Hip flex: ${getMP(8)}; Knee ext: ${getMP(9)}\n`;
-    t += ` Ankle D/P: ${getMP(10)}/${getMP(11)}; Big toe ext: ${getMP(12)}\n\n`;
+    t += ` Neck flexion/extension: ${getMP(0)}; Shoulder abduction: ${getMP(1)}\n`;
+    t += ` Elbow flexion/extension: ${getMP(2)}/${getMP(3)}; Wrist extension: ${getMP(4)}\n`;
+    t += ` Finger flexion/Grasp/abduction: ${getMP(5)}/${getMP(6)}/${getMP(7)}\n`;
+    t += ` Hip flexion: ${getMP(8)}; Knee extension: ${getMP(9)}\n`;
+    t += ` Ankle dorsiflexion/plantarflexion: ${getMP(10)}/${getMP(11)}; Big toe extension: ${getMP(12)}\n\n`;
 
     t += `*Reflex (R/L)\n`;
-    t += ` Biceps: ${refs[0].value}; Triceps: ${refs[1].value}\n`;
-    t += ` Knee: ${refs[2].value}; Ankle: ${refs[3].value}\n`;
-    t += ` Pathological: ${document.getElementById('v-ref-path').value}\n\n`;
+    t += ` Biceps: ${getRef(0)}; Triceps: ${getRef(1)}\n`;
+    t += ` Knee: ${getRef(2)}; Ankle: ${getRef(3)}\n`;
+    t += ` Pathological: Babinski: ${getPatho(0)}, Hoffman: ${getPatho(1)}\n\n`;
 
     t += `*Sensation\n`;
     t += ` Light touch/Pinprick: ${document.getElementById('s-light').value}/${document.getElementById('s-pin').value}\n`;
@@ -464,8 +467,8 @@ function generateText() {
     t += ` Speech: ${uS[0]}; Mask face: ${uS[1]}\n`;
     t += ` Tremor(RU/LU/RL/LL): Resting ${uSub[0]}/${uSub[1]}/${uSub[2]}/${uSub[3]}, Action ${uSub[4]}/${uSub[5]}\n`;
     t += ` Rigidity(Neck/RU/LU/RL/LL): ${uSub[6]}/${uSub[7]}/${uSub[8]}/${uSub[9]}/${uSub[10]}\n`;
-    t += ` R/L: Tapping ${uSub[11]}/${uSub[12]}, Grasp ${uSub[13]}/${uSub[14]}, RAM ${uSub[15]}/${uSub[16]}, Foot ${uSub[17]}/${uSub[18]}\n`;
-    t += ` Gait/Pull/Stand/Brady: ${uS[11] || 0}/${uS[12] || 0}/${uS[9] || 0}/${uS[13] || 0}\n\n`;
+    t += ` R/L: Tapping ${uSub[11]}/${uSub[12]}, Grasp ${uSub[13]}/${uSub[14]}, Rapid Alternating Movements ${uSub[15]}/${uSub[16]}, Foot ${uSub[17]}/${uSub[18]}\n`;
+    t += ` Gait/Pull/Stand/Bradykinesia: ${uS[11] || 0}/${uS[12] || 0}/${uS[9] || 0}/${uS[13] || 0}\n\n`;
 
     t += `*Mental Status\n`;
     t += ` MMSE Total: ${mTotal}/30\n`;
