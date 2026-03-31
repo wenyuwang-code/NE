@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>NE Note</title>
+    <title>小笨腦不會做NE</title>
     <style>
         body { font-family: 'Consolas', 'Monaco', monospace; background: #f4f7f6; color: #333; margin: 0; padding-bottom: 120px; }
         .header { background: #2c3e50; padding: 10px; position: sticky; top: 0; z-index: 1000; box-shadow: 0 2px 5px rgba(0,0,0,0.2); }
@@ -21,12 +21,13 @@
         .input-area { flex: 3; display: flex; gap: 5px; align-items: center; flex-wrap: wrap; }
         
         input[type="text"], select { padding: 6px; border: 1px solid #ccc; border-radius: 4px; font-size: 0.9rem; width: 100%; box-sizing: border-box; }
-        select.mp-select { width: 60px; text-align: center; }
+        select.mp-select, select.mmse-select { width: 70px; text-align: center; }
         
         .footer-bar { position: fixed; bottom: 0; width: 100%; background: white; border-top: 4px solid #2c3e50; padding: 10px; text-align: center; box-shadow: 0 -2px 10px rgba(0,0,0,0.1); z-index: 999; }
         #export-area { width: 100%; height: 500px; font-family: 'Consolas', monospace; font-size: 12px; padding: 10px; border: 2px solid #333; background: #fafafa; line-height: 1.4; }
         .hidden { display: none; }
         
+        .grid-3 { display: grid; grid-template-columns: 3fr 1fr; gap: 10px; align-items: center; padding: 5px 0; border-bottom: 1px solid #f9f9f9; }
         .mp-grid { display: grid; grid-template-columns: 2fr 1fr 1fr; gap: 10px; align-items: center; padding: 5px 0; border-bottom: 1px solid #f9f9f9; }
     </style>
 </head>
@@ -93,14 +94,21 @@
         <div class="row"><div class="label">Vibration (/8)</div><input type="text" id="v-vibe" value="Big toe: 6/8, Finger: 7/8"></div>
     </div>
 
+    <div id="s-eps" class="sec hidden">
+        <div class="section-title">EPS & Gait</div>
+        <div class="row"><div class="label">Gait/Balance</div><input type="text" id="v-gait-style" value="Steady, no shuffling, tandem gait intact"></div>
+    </div>
     <div id="s-updrs" class="sec hidden">
-        <div class="section-title">UPDRS Part III (Score 0-4)</div>
+        <div class="section-title">UPDRS Part III</div>
         <div id="updrs-box"></div>
     </div>
 
     <div id="s-cognition" class="sec hidden">
-        <div class="section-title">Cognition</div>
-        <div class="row"><div class="label">MMSE / FAB</div><input type="text" id="v-cog" value="MMSE: 30/30, Luria 3-step: intact, Language: fluent"></div>
+        <div class="section-title">Mini-Mental Status Examination (MMSE)</div>
+        <div id="mmse-box"></div>
+        <div style="margin-top:15px; font-weight:bold; color:#2c3e50; border-top: 2px solid #eee; padding-top:10px;">Other Cognitive Tests</div>
+        <div class="row"><div class="label">Luria 3-step</div><input type="text" id="v-cog-luria" value="intact"></div>
+        <div class="row"><div class="label">Language</div><input type="text" id="v-cog-lang" value="fluent"></div>
     </div>
 
     <div id="s-export" class="sec hidden">
@@ -110,7 +118,10 @@
     </div>
 </div>
 
-<div class="footer-bar"><span id="nihss-score-display" style="font-weight:bold; color:#d32f2f;">NIHSS Total: 0</span></div>
+<div class="footer-bar">
+    <span id="nihss-score-display" style="font-weight:bold; color:#d32f2f; margin-right:15px;">NIHSS: 0</span>
+    <span id="mmse-score-display" style="font-weight:bold; color:#2c3e50;">MMSE: 30/30</span>
+</div>
 
 <script>
 const nihssItems = [
@@ -131,11 +142,9 @@ const nihssItems = [
     {n:"11. 忽略", opts:["0 無","1 輕微忽略","2 嚴重忽略"]}
 ];
 
-const mpItems = [
-    "Neck flex/ext", "Shoulder abd (C5)", "Elbow flex (C6)", "Elbow ext (C7)", 
-    "Wrist ext (C6)", "Finger flex (C8)", "Grasping (C8/T1)", "Finger abd (T1)",
-    "Hip flex (L2)", "Knee ext (L3)", "Ankle dorsi (L4)", "Ankle plantar (S1)", "Big toe ext (L5)"
-];
+const mpItems = ["Neck flex/ext", "Shoulder abd (C5)", "Elbow flex (C6)", "Elbow ext (C7)", "Wrist ext (C6)", "Finger flex (C8)", "Grasping (C8/T1)", "Finger abd (T1)", "Hip flex (L2)", "Knee ext (L3)", "Ankle dorsi (L4)", "Ankle plantar (S1)", "Big toe ext (L5)"];
+
+const mmseQs = ["年份 (今年是那一年?)","季節 (現在是什麼季節?)","日期 (今天是幾號?)","禮拜 (今天是禮拜幾?)","月份 (現在是那一個月份?)","省/市 (我們現在在那一個省?)","縣/市 (我們現在在那一個縣、市?)","區/鄉鎮 (這裡屬於哪一個區或鄉鎮?)","機構名稱 (這個醫院或診所的名稱?)","樓層 (現在我們是在幾樓?)","複述: 藍色","複述: 悲傷","複述: 火車","100-7=93","93-7=86","86-7=79","79-7=72","72-7=65","回憶: 藍色","回憶: 悲傷","回憶: 火車","辨認: 手錶","辨認: 鉛筆","跟我唸: 白紙真正寫黑字","做動作: 請閉上眼睛","三步驟: 拿紙","三步驟: 摺半","三步驟: 放大腿","寫句子 (主動詞語意完整)","畫圖 (兩五邊形交集)"];
 
 const updrsItems = ["Speech", "Mask face", "Rest tremor", "Action tremor", "Rigidity", "Finger tapping", "Grasping", "RAM", "Gait", "Bradykinesia"];
 
@@ -143,41 +152,48 @@ function init() {
     // Restore ID
     document.getElementById('v-id').value = localStorage.getItem('ne_chart_no') || "";
 
-    // NIHSS
+    // NIHSS Init
     const nb = document.getElementById('nihss-box');
-    nihssItems.forEach((q, i) => {
-        nb.innerHTML += `<div class="row"><span class="label">${q.n}</span><select class="n-val" onchange="calcNIHSS()">${q.opts.map((o,v)=>`<option value="${v}">${o}</option>`).join('')}</select></div>`;
+    nihssItems.forEach(q => {
+        nb.innerHTML += `<div class="row"><span class="label">${q.n}</span><select class="n-val" onchange="calcScores()">${q.opts.map((o,v)=>`<option value="${v}">${o}</option>`).join('')}</select></div>`;
     });
 
-    // Motor MP (下拉選單 0-5)
+    // Motor MP Init (0-5 Select)
     const mpb = document.getElementById('mp-box');
-    mpItems.forEach((item, i) => {
+    mpItems.forEach(item => {
         let options = [5,4,3,2,1,0].map(v => `<option value="${v}">${v}</option>`).join('');
-        mpb.innerHTML += `<div class="mp-grid">
-            <span>${item}</span>
-            <select class="mp-r-val mp-select">${options}</select>
-            <select class="mp-l-val mp-select">${options}</select>
-        </div>`;
+        mpb.innerHTML += `<div class="mp-grid"><span>${item}</span><select class="mp-r-val mp-select">${options}</select><select class="mp-l-val mp-select">${options}</select></div>`;
     });
 
-    // Reflex
+    // MMSE Init (0-1 Select)
+    const mmb = document.getElementById('mmse-box');
+    mmseQs.forEach((q, i) => {
+        mmb.innerHTML += `<div class="grid-3"><span>${i+1}. ${q}</span><select class="mmse-val mmse-select" onchange="calcScores()"><option value="1">1 (正)</option><option value="0">0 (誤)</option></select></div>`;
+    });
+
+    // Reflex Init
     const rb = document.getElementById('reflex-box');
     ["Biceps", "Triceps", "Knee", "Ankle"].forEach(it => {
         rb.innerHTML += `<div class="row"><span class="label">${it} (R/L)</span><input type="text" class="ref-val" value="++/++"></div>`;
     });
 
-    // UPDRS
+    // UPDRS Init
     const ub = document.getElementById('updrs-box');
     updrsItems.forEach(it => {
         ub.innerHTML += `<div class="row"><span class="label">${it}</span><select class="up-val">${[0,1,2,3,4].map(v=>`<option value="${v}">${v}</option>`).join('')}</select></div>`;
     });
+    
+    calcScores();
 }
 
 function saveID() { localStorage.setItem('ne_chart_no', document.getElementById('v-id').value); }
 
-function calcNIHSS() {
-    const total = Array.from(document.querySelectorAll('.n-val')).reduce((a, b) => a + parseInt(b.value), 0);
-    document.getElementById('nihss-score-display').innerText = `NIHSS Total: ${total}`;
+function calcScores() {
+    const nihssTotal = Array.from(document.querySelectorAll('.n-val')).reduce((a, b) => a + parseInt(b.value), 0);
+    document.getElementById('nihss-score-display').innerText = `NIHSS: ${nihssTotal}`;
+
+    const mmseTotal = Array.from(document.querySelectorAll('.mmse-val')).reduce((a, b) => a + parseInt(b.value), 0);
+    document.getElementById('mmse-score-display').innerText = `MMSE: ${mmseTotal}/30`;
 }
 
 function show(id) {
@@ -191,6 +207,7 @@ function exportData() {
     show('export');
     const get = (id) => document.getElementById(id).value;
     const nihssTotal = document.getElementById('nihss-score-display').innerText;
+    const mmseTotal = document.getElementById('mmse-score-display').innerText;
     const mpR = document.querySelectorAll('.mp-r-val');
     const mpL = document.querySelectorAll('.mp-l-val');
     const refs = document.querySelectorAll('.ref-val');
@@ -208,13 +225,13 @@ function exportData() {
     ["Biceps", "Triceps", "Knee", "Ankle"].forEach((name, i) => {
         t += `  ${name.padEnd(12)}: ${refs[i].value}\n`;
     });
-    t += `  ${get('v-ref-path')}\n\n`;
+    t += `  Pathological: ${get('v-ref-path')}\n\n`;
 
     t += `*Sensation\n- ${get('v-sens-basic')}\n- ${get('v-sens-prop')}\n- Vibration: ${get('v-vibe')}\n\n`;
     
-    t += `*Cognition\n- ${get('v-cog')}\n\n`;
+    t += `*Cognition\n- ${mmseTotal}\n- Luria 3-step: ${get('v-cog-luria')}\n- Language: ${get('v-cog-lang')}\n\n`;
     
-    t += `[Scales]\n- ${nihssTotal}\n- UPDRS Part III: checked\n`;
+    t += `[Scales/Gait]\n- ${nihssTotal}\n- Gait: ${get('v-gait-style')}\n- UPDRS Part III: Checked\n`;
 
     document.getElementById('export-area').value = t;
 }
