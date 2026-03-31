@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>小笨腦不會做NE</title>
+    <title>NE小笨腦</title>
     <style>
         body { font-family: 'Consolas', 'Monaco', monospace; background: #f4f7f6; color: #333; margin: 0; padding-bottom: 120px; }
         .header { background: #2c3e50; padding: 10px; position: sticky; top: 0; z-index: 1000; box-shadow: 0 2px 5px rgba(0,0,0,0.2); }
@@ -17,12 +17,14 @@
         .sub-title { font-weight: bold; color: #d32f2f; margin: 15px 0 5px; font-size: 0.9rem; text-transform: uppercase; border-bottom: 1px solid #eee; }
         
         .row { display: flex; align-items: center; padding: 8px 0; border-bottom: 1px dashed #eee; }
+        .mp-row { display: flex; align-items: center; justify-content: space-between; padding: 8px 0; border-bottom: 1px dashed #eee; }
         .label { flex: 2; font-weight: 600; font-size: 0.9rem; }
         .input-area { flex: 3; display: flex; gap: 5px; align-items: center; flex-wrap: wrap; }
         
         input[type="text"], select { padding: 6px; border: 1px solid #ccc; border-radius: 4px; font-size: 0.9rem; width: 100%; box-sizing: border-box; }
-        select.mp-select, select.mmse-select { width: 70px; text-align: center; }
-        
+        select.mp-select, select.mmse-select, select.j-r, select.j-l, select.v-r, select.v-l { width: 70px; text-align: center; display: inline-block; }
+        .mp-selects { display: flex; gap: 10px; align-items: center; }
+
         .footer-bar { position: fixed; bottom: 0; width: 100%; background: white; border-top: 4px solid #2c3e50; padding: 10px; text-align: center; box-shadow: 0 -2px 10px rgba(0,0,0,0.1); z-index: 999; }
         #export-area { width: 100%; height: 500px; font-family: 'Consolas', monospace; font-size: 12px; padding: 10px; border: 2px solid #333; background: #fafafa; line-height: 1.4; }
         .hidden { display: none; }
@@ -49,7 +51,7 @@
 
 <div class="container">
     <div class="row" style="background: #fffbe6; padding: 10px; border: 1px solid #ffe58f;">
-        <div class="label">Chart No. (Auto-save)</div>
+        <div class="label">Chart No.</div>
         <div class="input-area"><input type="text" id="v-id" oninput="saveID()" placeholder="輸入病歷號碼..."></div>
     </div>
 
@@ -60,24 +62,19 @@
 
     <div id="s-cn" class="sec hidden">
         <div class="section-title">Cranial Nerves</div>
-        <div class="row"><div class="label">CN I (Smell)</div><input type="text" id="v-cn1" value="smell, not performed, anosmia(-), hyposmia(-), hyperosmia(-)"></div>
+        <div class="row"><div class="label">CN I (Smell)</div><input type="text" id="v-cn1" value="smell, not performed, anosmia(-)"></div>
         <div class="row"><div class="label">CN II (V.A./V.F.)</div><input type="text" id="v-cn2" value="confrontation test-intact, hemianopia(-)"></div>
-        <div class="row"><div class="label">CN III, IV, VI (Pupil/EOM)</div><input type="text" id="v-cn3" value="3mm/3mm, LR:+/+, EOM:full, no diplopia"></div>
+        <div class="row"><div class="label">CN III, IV, VI</div><input type="text" id="v-cn3" value="3mm/3mm, LR:+/+, EOM:full"></div>
         <div class="row"><div class="label">CN V, VII, VIII</div><input type="text" id="v-cn578" value="Facial sensation intact; No facial palsy; Hearing fair"></div>
         <div class="row"><div class="label">CN IX, X, XI, XII</div><input type="text" id="v-cn912" value="Uvula dev(-), Gag(+), SCM 5/5, Tongue dev(-)"></div>
     </div>
 
     <div id="s-motor" class="sec hidden">
         <div class="section-title">Motor</div>
-        <div class="sub-title">Motor Inspection & Tone</div>
-        <div class="row"><div class="label">Inspection</div><input type="text" id="v-motor-ins" value="muscle wasting(-), fasciculation(-), dystonia(-)"></div>
+        <div class="row"><div class="label">Inspection</div><input type="text" id="v-motor-ins" value="muscle wasting(-), fasciculation(-)"></div>
         <div class="row"><div class="label">Muscle Tone</div><input type="text" id="v-motor-tone" value="spasticity(-), rigidity(-)"></div>
         <div class="row"><div class="label">Pronator Drift (L/R)</div><input type="text" id="v-motor-drift" value="-/-"></div>
-        
         <div class="sub-title">Motor: Muscle Power (R / L)</div>
-        <div id="mp-box-header" class="mp-grid" style="font-weight:bold; background:#eee;">
-            <span>Muscle Group (Segment)</span><span>Right Side</span><span>Left Side</span>
-        </div>
         <div id="mp-box"></div>
     </div>
 
@@ -88,15 +85,20 @@
     </div>
 
     <div id="s-sensory" class="sec hidden">
-        <div class="section-title">Sensation</div>
-        <div class="row"><div class="label">Basic (LT/PP)</div><input type="text" id="v-sens-basic" value="symmetrically intact"></div>
-        <div class="row"><div class="label">Proprioception</div><input type="text" id="v-sens-prop" value="Joint position Finger 5/5, Toe 5/5"></div>
-        <div class="row"><div class="label">Vibration (/8)</div><input type="text" id="v-vibe" value="Big toe: 6/8, Finger: 7/8"></div>
+        <div class="section-title">Sensory 感覺系統</div>
+        <div class="mp-row"><span>Subjective paraesthesia:</span><select id="s-para" style="width:70px"><option>-</option><option>+</option></select></div>
+        <div id="joint-vibe-box"></div>
+        <div class="row"><span>Neglect:</span><input type="text" id="s-neglect" value="not demonstrable tactile/auditory/spatial hemineglect"></div>
+        <div class="mp-row"><span>Romberg's test:</span><select id="s-romberg" style="width:70px"><option>-</option><option>+</option></select></div>
+        <div class="section-title" style="font-size:1.1rem; border-left:4px solid #aaa;">Small fiber:</div>
+        <div class="row"><span>Light touch:</span><input type="text" id="s-light" value="no hypoesthesia"></div>
+        <div class="row"><span>Pinprick:</span><input type="text" id="s-pin" value="no hypoesthesia"></div>
+        <div class="row"><span>Temperature (Cold):</span><input type="text" id="s-temp" value="no hypoesthesia to cold (by tuning fork)"></div>
     </div>
 
     <div id="s-eps" class="sec hidden">
         <div class="section-title">EPS & Gait</div>
-        <div class="row"><div class="label">Gait/Balance</div><input type="text" id="v-gait-style" value="Steady, no shuffling, tandem gait intact"></div>
+        <div class="row"><div class="label">Gait/Balance</div><input type="text" id="v-gait-style" value="Steady, no shuffling"></div>
     </div>
     <div id="s-updrs" class="sec hidden">
         <div class="section-title">UPDRS Part III</div>
@@ -104,9 +106,9 @@
     </div>
 
     <div id="s-cognition" class="sec hidden">
-        <div class="section-title">Mini-Mental Status Examination (MMSE)</div>
+        <div class="section-title">MMSE</div>
         <div id="mmse-box"></div>
-        <div style="margin-top:15px; font-weight:bold; color:#2c3e50; border-top: 2px solid #eee; padding-top:10px;">Other Cognitive Tests</div>
+        <div class="sub-title">Other Cognitive</div>
         <div class="row"><div class="label">Luria 3-step</div><input type="text" id="v-cog-luria" value="intact"></div>
         <div class="row"><div class="label">Language</div><input type="text" id="v-cog-lang" value="fluent"></div>
     </div>
@@ -124,6 +126,7 @@
 </div>
 
 <script>
+// Data Definitions
 const nihssItems = [
     {n:"1a. 意識程度", opts:["0 清醒","1 嗜睡","2 呆滯","3 昏迷"]},
     {n:"1b. 意識詢問", opts:["0 兩項正確","1 一項正確","2 兩項錯誤"]},
@@ -131,10 +134,8 @@ const nihssItems = [
     {n:"2. 眼球運動", opts:["0 正常","1 部份限制","2 偏向一側"]},
     {n:"3. 視野", opts:["0 正常","1 部份偏盲","2 偏盲","3 全盲"]},
     {n:"4. 面部肌肉", opts:["0 正常","1 輕微麻痺","2 部份麻痺","3 完全麻痺"]},
-    {n:"5a. 左上肢", opts:["0 無掉落","1 微掉落","2 掉到床面","3 僅有晃動","4 無收縮"]},
-    {n:"5b. 右上肢", opts:["0 無掉落","1 微掉落","2 掉到床面","3 僅有晃動","4 無收縮"]},
-    {n:"6a. 左下肢", opts:["0 無掉落","1 微掉落","2 掉到床面","3 僅有晃動","4 無收縮"]},
-    {n:"6b. 右下肢", opts:["0 無掉落","1 微掉落","2 掉到床面","3 僅有晃動","4 無收縮"]},
+    {n:"5a/b. 上肢 (L/R)", type:"dual"},
+    {n:"6a/b. 下肢 (L/R)", type:"dual"},
     {n:"7. 肢體失調", opts:["0 無","1 一肢","2 二肢"]},
     {n:"8. 感覺功能", opts:["0 正常","1 輕微喪失","2 嚴重喪失"]},
     {n:"9. 語言功能", opts:["0 正常","1 輕微失語","2 嚴重失語","3 完全失語"]},
@@ -142,9 +143,9 @@ const nihssItems = [
     {n:"11. 忽略", opts:["0 無","1 輕微忽略","2 嚴重忽略"]}
 ];
 
-const mpItems = ["Neck flex/ext", "Shoulder abd (C5)", "Elbow flex (C6)", "Elbow ext (C7)", "Wrist ext (C6)", "Finger flex (C8)", "Grasping (C8/T1)", "Finger abd (T1)", "Hip flex (L2)", "Knee ext (L3)", "Ankle dorsi (L4)", "Ankle plantar (S1)", "Big toe ext (L5)"];
+const mpItems = ["Neck flex/ext", "Shoulder abd (C5)", "Elbow flex (C6)", "Elbow ext (C7)", "Wrist ext (C6)", "Finger flex (C8)", "Grasping (C8/T1)", "Hip flex (L2)", "Knee ext (L3)", "Ankle dorsi (L4)", "Ankle plantar (S1)", "Big toe ext (L5)"];
 
-const mmseQs = ["年份 (今年是那一年?)","季節 (現在是什麼季節?)","日期 (今天是幾號?)","禮拜 (今天是禮拜幾?)","月份 (現在是那一個月份?)","省/市 (我們現在在那一個省?)","縣/市 (我們現在在那一個縣、市?)","區/鄉鎮 (這裡屬於哪一個區或鄉鎮?)","機構名稱 (這個醫院或診所的名稱?)","樓層 (現在我們是在幾樓?)","複述: 藍色","複述: 悲傷","複述: 火車","100-7=93","93-7=86","86-7=79","79-7=72","72-7=65","回憶: 藍色","回憶: 悲傷","回憶: 火車","辨認: 手錶","辨認: 鉛筆","跟我唸: 白紙真正寫黑字","做動作: 請閉上眼睛","三步驟: 拿紙","三步驟: 摺半","三步驟: 放大腿","寫句子 (主動詞語意完整)","畫圖 (兩五邊形交集)"];
+const mmseQs = ["年份", "季節", "日期", "禮拜", "月份", "省/市", "縣/市", "區/鄉鎮", "機構名稱", "樓層", "複述: 藍色", "複述: 悲傷", "複述: 火車", "100-7=93", "93-7=86", "86-7=79", "79-7=72", "72-7=65", "回憶: 藍色", "回憶: 悲傷", "回憶: 火車", "辨認: 手錶", "辨認: 鉛筆", "跟我唸", "做動作: 請閉上眼睛", "三步驟: 拿紙", "三步驟: 摺半", "三步驟: 放大腿", "寫句子", "畫圖"];
 
 const updrsItems = ["Speech", "Mask face", "Rest tremor", "Action tremor", "Rigidity", "Finger tapping", "Grasping", "RAM", "Gait", "Bradykinesia"];
 
@@ -155,21 +156,26 @@ function init() {
     // NIHSS Init
     const nb = document.getElementById('nihss-box');
     nihssItems.forEach(q => {
-        nb.innerHTML += `<div class="row"><span class="label">${q.n}</span><select class="n-val" onchange="calcScores()">${q.opts.map((o,v)=>`<option value="${v}">${o}</option>`).join('')}</select></div>`;
+        if(q.type === "dual") {
+            nb.innerHTML += `<div class="row"><span class="label">${q.n}</span><div class="input-area">L:<select class="n-val" onchange="calcScores()">${[0,1,2,3,4].map(v=>`<option>${v}</option>`).join('')}</select> R:<select class="n-val" onchange="calcScores()">${[0,1,2,3,4].map(v=>`<option>${v}</option>`).join('')}</select></div></div>`;
+        } else {
+            nb.innerHTML += `<div class="row"><span class="label">${q.n}</span><select class="n-val" onchange="calcScores()">${q.opts.map((o,v)=>`<option value="${v}">${o}</option>`).join('')}</select></div>`;
+        }
     });
 
-    // Motor MP Init (0-5 Select)
+    // Motor MP Init
     const mpb = document.getElementById('mp-box');
     mpItems.forEach(item => {
-        let options = [5,4,3,2,1,0].map(v => `<option value="${v}">${v}</option>`).join('');
-        mpb.innerHTML += `<div class="mp-grid"><span>${item}</span><select class="mp-r-val mp-select">${options}</select><select class="mp-l-val mp-select">${options}</select></div>`;
+        let opts = [5,4,3,2,1,0].map(v => `<option value="${v}">${v}</option>`).join('');
+        mpb.innerHTML += `<div class="mp-grid"><span>${item}</span><select class="mp-r-val mp-select">${opts}</select><select class="mp-l-val mp-select">${opts}</select></div>`;
     });
 
-    // MMSE Init (0-1 Select)
-    const mmb = document.getElementById('mmse-box');
-    mmseQs.forEach((q, i) => {
-        mmb.innerHTML += `<div class="grid-3"><span>${i+1}. ${q}</span><select class="mmse-val mmse-select" onchange="calcScores()"><option value="1">1 (正)</option><option value="0">0 (誤)</option></select></div>`;
-    });
+    // Sensory Init (更新的邏輯)
+    const jvBox = document.getElementById('joint-vibe-box');
+    ["Fingers", "Toes"].forEach(it => jvBox.innerHTML += `<div class="mp-row"><span>${it} (Joint/Proprioception)</span><div class="mp-selects">R:<select class="j-r"></select> L:<select class="j-l"></select></div></div>`);
+    const vOpts = []; for(let i=80; i>=0; i-=5) vOpts.push((i/10).toFixed(1));
+    ["Big toe", "Finger", "Ankle"].forEach(it => jvBox.innerHTML += `<div class="mp-row"><span>${it} (Vibe)</span><div class="mp-selects">R:<select class="v-r">${vOpts.map(v=>`<option ${v=='8.0'?'selected':''}>${v}</option>`).join('')}</select> L:<select class="v-l">${vOpts.map(v=>`<option ${v=='8.0'?'selected':''}>${v}</option>`).join('')}</select></div></div>`);
+    document.querySelectorAll('.j-r, .j-l').forEach(el => el.innerHTML = [5,4,3,2,1,0].map(v=>`<option>${v}</option>`).join(''));
 
     // Reflex Init
     const rb = document.getElementById('reflex-box');
@@ -177,12 +183,18 @@ function init() {
         rb.innerHTML += `<div class="row"><span class="label">${it} (R/L)</span><input type="text" class="ref-val" value="++/++"></div>`;
     });
 
+    // MMSE Init
+    const mmb = document.getElementById('mmse-box');
+    mmseQs.forEach((q, i) => {
+        mmb.innerHTML += `<div class="grid-3"><span>${i+1}. ${q}</span><select class="mmse-val mmse-select" onchange="calcScores()"><option value="1">1</option><option value="0">0</option></select></div>`;
+    });
+
     // UPDRS Init
     const ub = document.getElementById('updrs-box');
     updrsItems.forEach(it => {
-        ub.innerHTML += `<div class="row"><span class="label">${it}</span><select class="up-val">${[0,1,2,3,4].map(v=>`<option value="${v}">${v}</option>`).join('')}</select></div>`;
+        ub.innerHTML += `<div class="row"><span class="label">${it}</span><select class="up-val">${[0,1,2,3,4].map(v=>`<option>${v}</option>`).join('')}</select></div>`;
     });
-    
+
     calcScores();
 }
 
@@ -191,7 +203,6 @@ function saveID() { localStorage.setItem('ne_chart_no', document.getElementById(
 function calcScores() {
     const nihssTotal = Array.from(document.querySelectorAll('.n-val')).reduce((a, b) => a + parseInt(b.value), 0);
     document.getElementById('nihss-score-display').innerText = `NIHSS: ${nihssTotal}`;
-
     const mmseTotal = Array.from(document.querySelectorAll('.mmse-val')).reduce((a, b) => a + parseInt(b.value), 0);
     document.getElementById('mmse-score-display').innerText = `MMSE: ${mmseTotal}/30`;
 }
@@ -206,32 +217,27 @@ function show(id) {
 function exportData() {
     show('export');
     const get = (id) => document.getElementById(id).value;
-    const nihssTotal = document.getElementById('nihss-score-display').innerText;
-    const mmseTotal = document.getElementById('mmse-score-display').innerText;
-    const mpR = document.querySelectorAll('.mp-r-val');
-    const mpL = document.querySelectorAll('.mp-l-val');
+    const mpR = document.querySelectorAll('.mp-r-val'), mpL = document.querySelectorAll('.mp-l-val');
+    const jr = document.querySelectorAll('.j-r'), jl = document.querySelectorAll('.j-l');
+    const vr = document.querySelectorAll('.v-r'), vl = document.querySelectorAll('.v-l');
     const refs = document.querySelectorAll('.ref-val');
 
-    let t = `【Neurological examination】\nChart No: ${get('v-id')}\nConsciousness: Clear\n\n`;
-    
-    t += `*Cranial nerve\n- CN I: ${get('v-cn1')}\n- CN II: ${get('v-cn2')}\n- CN III,IV,VI: ${get('v-cn3')}\n- CN V,VII,VIII: ${get('v-cn578')}\n- CN IX,X,XI,XII: ${get('v-cn912')}\n\n`;
-
-    t += `*motor\nMotor inspection: ${get('v-motor-ins')}\nMuscle tone: ${get('v-motor-tone')}\nPronator drift: ${get('v-motor-drift')}\n\nmotor:(R/L)\n`;
-    mpItems.forEach((name, i) => {
-        t += `  ${name.padEnd(20)}: ${mpR[i].value}/${mpL[i].value}\n`;
-    });
+    let t = `【Neurological examination】\nChart No: ${get('v-id')}\n\n`;
+    t += `*motor:(R/L)\n`;
+    mpItems.forEach((name, i) => { t += `  ${name.padEnd(20)}: ${mpR[i].value}/${mpL[i].value}\n`; });
 
     t += `\n*Reflex (R/L)\n`;
-    ["Biceps", "Triceps", "Knee", "Ankle"].forEach((name, i) => {
-        t += `  ${name.padEnd(12)}: ${refs[i].value}\n`;
-    });
+    ["Biceps", "Triceps", "Knee", "Ankle"].forEach((name, i) => { t += `  ${name.padEnd(12)}: ${refs[i].value}\n`; });
     t += `  Pathological: ${get('v-ref-path')}\n\n`;
 
-    t += `*Sensation\n- ${get('v-sens-basic')}\n- ${get('v-sens-prop')}\n- Vibration: ${get('v-vibe')}\n\n`;
-    
-    t += `*Cognition\n- ${mmseTotal}\n- Luria 3-step: ${get('v-cog-luria')}\n- Language: ${get('v-cog-lang')}\n\n`;
-    
-    t += `[Scales/Gait]\n- ${nihssTotal}\n- Gait: ${get('v-gait-style')}\n- UPDRS Part III: Checked\n`;
+    t += `*Sensory\n- Paraesthesia: ${document.getElementById('s-para').value}\n`;
+    ["Fingers", "Toes"].forEach((n, i) => { t += `- Joint (${n}): R:${jr[i].value} L:${jl[i].value}\n`; });
+    ["Big toe", "Finger", "Ankle"].forEach((n, i) => { t += `- Vibe (${n}): R:${vr[i].value} L:${vl[i].value}\n`; });
+    t += `- Neglect: ${get('s-neglect')}\n- Romberg: ${document.getElementById('s-romberg').value}\n`;
+    t += `[Small fiber]\n- Light touch: ${get('s-light')}\n- Pinprick: ${get('s-pin')}\n- Temp: ${get('s-temp')}\n\n`;
+
+    t += `*Cognition\n- ${document.getElementById('mmse-score-display').innerText}\n- Luria: ${get('v-cog-luria')}\n- Language: ${get('v-cog-lang')}\n\n`;
+    t += `[Scales]\n- ${document.getElementById('nihss-score-display').innerText}\n- UPDRS: Checked\n`;
 
     document.getElementById('export-area').value = t;
 }
@@ -240,11 +246,10 @@ function copyToClipboard() {
     const area = document.getElementById('export-area');
     area.select();
     document.execCommand('copy');
-    alert("病歷模板已複製到剪貼簿！");
+    alert("Copied!");
 }
 
-init(); 
-show('nihss');
+init(); show('nihss');
 </script>
 </body>
 </html>
