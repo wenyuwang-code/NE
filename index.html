@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>NE Note Master Pro - 臨床實務增強版</title>
+    <title>NE Note Master Pro - 醫師專用增強版</title>
     <style>
         body { font-family: 'Consolas', 'Monaco', monospace; background: #f4f7f6; color: #333; margin: 0; padding-bottom: 150px; }
         .header { background: #2c3e50; padding: 10px; position: sticky; top: 0; z-index: 1000; box-shadow: 0 2px 5px rgba(0,0,0,0.2); }
@@ -41,13 +41,11 @@
         .hidden { display: none; }
         
         .btn-save { background: #e67e22 !important; font-weight: bold; color: white; border: none; padding: 10px; border-radius: 4px; cursor: pointer; }
-        
-        /* New Styles for GCS and Localization */
-        .gcs-panel { background: #e3f2fd; border: 1px solid #90caf9; padding: 10px; border-radius: 8px; margin-top: 10px; display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 8px; }
-        .gcs-panel select { background: white; }
-        .loc-box { margin-top: 15px; padding: 12px; background: #fff3e0; border-left: 5px solid #ff9800; border-radius: 4px; }
-        .loc-title { color: #e65100; font-weight: bold; font-size: 0.9rem; margin-bottom: 5px; display: block; }
-        .loc-item { font-size: 0.85rem; color: #444; margin: 2px 0; }
+
+        /* 新增：定位診斷樣式 */
+        #localization-display { margin-top: 15px; padding: 15px; background: #fff3e0; border-left: 5px solid #ff9800; font-family: sans-serif; }
+        .loc-title { font-weight: bold; color: #e65100; margin-bottom: 5px; display: block; }
+        .loc-item { font-size: 0.9rem; color: #444; margin: 3px 0; }
     </style>
 </head>
 <body>
@@ -67,46 +65,49 @@
 </div>
 
 <div class="container">
-    <div class="row" style="background: #fffbe6; padding: 10px; border: 1px solid #ffe58f; gap:10px; border-radius: 8px; flex-wrap: wrap;">
-        <input type="text" id="v-id" placeholder="輸入病歷號碼 (Chart No)..." oninput="autoUpdate()" style="flex: 2; min-width: 200px;">
-        <button onclick="saveToHistory()" class="btn-save" style="flex: 1;">儲存至歷史清單</button>
-        
-        <div class="gcs-panel" style="width: 100%;">
-            <div><small>Eye</small>
-                <select id="v-gcs-e" onchange="autoUpdate()">
-                    <option value="4">Spontaneous (+4)</option>
-                    <option value="3">To verbal (+3)</option>
+    <div class="row" style="background: #fffbe6; padding: 10px; border: 1px solid #ffe58f; gap:10px; border-radius: 8px;">
+        <input type="text" id="v-id" placeholder="輸入病歷號碼 (Chart No)..." oninput="autoUpdate()">
+        <button onclick="saveToHistory()" class="btn-save">儲存至歷史清單</button>
+    </div>
+
+    <div id="s-cn" class="sec hidden">
+        <div class="section-title">GCS & Cranial Nerves (CN)</div>
+        <div class="item-box" style="background: #e1f5fe; padding: 10px; border-radius: 4px;">
+            <span class="item-label" style="color: #01579b;">GCS 評估</span>
+            <div class="sub-row">
+                <span>Best Eye:</span>
+                <select id="gcs-e" onchange="autoUpdate()">
+                    <option value="4">Spontaneously (+4)</option>
+                    <option value="3">To verbal command (+3)</option>
                     <option value="2">To pain (+2)</option>
-                    <option value="1">No opening (+1)</option>
+                    <option value="1">No eye opening (+1)</option>
                     <option value="NT">Not testable (NT)</option>
                 </select>
             </div>
-            <div><small>Verbal</small>
-                <select id="v-gcs-v" onchange="autoUpdate()">
+            <div class="sub-row">
+                <span>Best Verbal:</span>
+                <select id="gcs-v" onchange="autoUpdate()">
                     <option value="5">Oriented (+5)</option>
                     <option value="4">Confused (+4)</option>
-                    <option value="3">Inappropriate (+3)</option>
-                    <option value="2">Incomprehensible (+2)</option>
-                    <option value="1">No response (+1)</option>
-                    <option value="NT">NT/Intubated</option>
+                    <option value="3">Inappropriate words (+3)</option>
+                    <option value="2">Incomprehensible sounds (+2)</option>
+                    <option value="1">No verbal response (+1)</option>
+                    <option value="NT">Not testable/intubated (NT)</option>
                 </select>
             </div>
-            <div><small>Motor</small>
-                <select id="v-gcs-m" onchange="autoUpdate()">
-                    <option value="6">Obeys (+6)</option>
-                    <option value="5">Localizes (+5)</option>
-                    <option value="4">Withdrawal (+4)</option>
-                    <option value="3">Flexion (+3)</option>
-                    <option value="2">Extension (+2)</option>
-                    <option value="1">No response (+1)</option>
+            <div class="sub-row">
+                <span>Best Motor:</span>
+                <select id="gcs-m" onchange="autoUpdate()">
+                    <option value="6">Obeys commands (+6)</option>
+                    <option value="5">Localizes pain (+5)</option>
+                    <option value="4">Withdrawal from pain (+4)</option>
+                    <option value="3">Flexion to pain (+3)</option>
+                    <option value="2">Extension to pain (+2)</option>
+                    <option value="1">No motor response (+1)</option>
                     <option value="NT">Not testable (NT)</option>
                 </select>
             </div>
         </div>
-    </div>
-
-    <div id="s-cn" class="sec hidden">
-        <div class="section-title">Cranial Nerves (CN)</div>
         <div id="cn-container"></div>
     </div>
   
@@ -165,14 +166,15 @@
     <div id="s-export" class="sec hidden">
         <div class="section-title">生成的純文字病歷 (即時更新)</div>
         <textarea id="export-area" readonly></textarea>
+        
+        <div id="localization-display">
+            <span class="loc-title">📍 Initial Localization Guide (Clinical Reference)</span>
+            <div id="loc-content">輸入資料以進行定位分析...</div>
+        </div>
+
         <div style="display:flex; gap:10px; margin-top:10px;">
             <button onclick="copyToClipboard()" style="flex:1; padding:15px; background:#3498db; color:white; border:none; cursor:pointer; font-weight:bold;">複製文字</button>
             <button onclick="downloadTxt()" style="flex:1; padding:15px; background:#27ae60; color:white; border:none; cursor:pointer; font-weight:bold;">下載 .txt 檔案</button>
-        </div>
-        
-        <div id="loc-display" class="loc-box">
-            <span class="loc-title">Initial Localization Guide (Reference Only)</span>
-            <div id="loc-list"></div>
         </div>
     </div>
 </div>
@@ -269,6 +271,7 @@ const updrsFull = [
 const mmseQs = ["年份","季節","日期","禮拜","月份","省/市","縣/市","區/鄉鎮","醫院","樓層","複述:藍","複述:悲","複述:火","100-7","93-7","86-7","79-7","72-7","回憶:藍","回憶:悲","回憶:火","辨認:手錶","辨認:鉛筆","複誦句子","閉眼動作","拿紙","摺紙","放紙","寫句子","畫圖"];
 const mpItems = ["Neck flex/ext", "Shoulder abd (C5)", "Elbow flex (C6)", "Elbow ext (C7)", "Wrist ext (C6)", "Finger flex (C8)", "Grasping (C8/T1)", "Finger abd (T1)", "Hip flex (L2)", "Knee ext (L3)", "Ankle dorsi (L4)", "Ankle plantar (S1)", "Big toe ext (L5)"];
 
+// --- 初始化函數 ---
 function init() {
     const cnBox = document.getElementById('cn-container');
     cnData.forEach(group => {
@@ -341,12 +344,12 @@ function generateText() {
         return el ? el.value : "";
     };
     
-    // GCS 邏輯
-    const ge = document.getElementById('v-gcs-e').value;
-    const gv = document.getElementById('v-gcs-v').value;
-    const gm = document.getElementById('v-gcs-m').value;
-    const gTotal = (ge === 'NT' || gv === 'NT' || gm === 'NT') ? 'NT' : (parseInt(ge) + parseInt(gv) + parseInt(gm));
-    const gcsLine = `GCS: E${ge}V${gv}M${gm}, Total: ${gTotal}`;
+    // GCS 計算邏輯
+    const gE = document.getElementById('gcs-e').value;
+    const gV = document.getElementById('gcs-v').value;
+    const gM = document.getElementById('gcs-m').value;
+    let gSum = (gE === 'NT' || gV === 'NT' || gM === 'NT') ? 'NT' : (parseInt(gE) + parseInt(gV) + parseInt(gM));
+    const gcsNoteLine = `GCS: E${gE}V${gV}M${gM}, Total: ${gSum}`;
 
     const mpR = document.querySelectorAll('.mp-r'), mpL = document.querySelectorAll('.mp-l');
     const getMP = (i) => `${mpR[i].value}/${mpL[i].value}`;
@@ -356,6 +359,7 @@ function generateText() {
     const jR = document.querySelectorAll('.j-r'), jL = document.querySelectorAll('.j-l');
     const vR = document.querySelectorAll('.v-r'), vL = document.querySelectorAll('.v-l');
     
+    // MMSE 計算
     const mmseVals = Array.from(document.querySelectorAll('.mmse-val')).map(el => parseInt(el.value));
     const mTotal = mmseVals.reduce((a,b)=>a+b,0);
     const mOriT = mmseVals.slice(0,5).reduce((a,b)=>a+b,0);
@@ -370,6 +374,7 @@ function generateText() {
     const mWriting = mmseVals[28];
     const mConst = mmseVals[29];
 
+    // NIHSS 格式化
     const nVals = Array.from(document.querySelectorAll('.n-val')).map(el => el.value);
     const nTotal = nVals.reduce((a,b)=>a+parseInt(b),0);
     const nPart1 = nVals.slice(0,3).join('');
@@ -378,41 +383,41 @@ function generateText() {
     const nPart4 = nVals.slice(10,15).join('');
     const nihssLine = `NIHSS = ${nTotal} (${nPart1} ${nPart2} ${nPart3} ${nPart4})`;
 
-    // --- Localization Logic ---
-    let locs = [];
-    // Rule L1 & Cortical check
-    if (parseInt(nVals[12]) > 0 || parseInt(nVals[14]) > 0 || document.getElementById('v-cog-lang').value.toLowerCase().includes('aphasia')) {
-        locs.push("Cortical involvement suspected (due to Neglect/Aphasia).");
-    }
-    // Rule L2: UMN
-    if (document.getElementById('v-ref-path').value.includes('+/+') && document.getElementById('v-motor-tone').value.toLowerCase().includes('spastic')) {
-        locs.push("Upper Motor Neuron (UMN) lesion pattern (Spasticity + Babinski).");
-    }
-    // Rule L3: Hemiparesis & Lacunar
+    // Localization 邏輯推論
+    let locHints = [];
+    // Rule L1: Cortical signs
+    if (parseInt(nVals[12]) > 0 || parseInt(nVals[14]) > 0) locHints.push("Cortical involvement (Aphasia/Neglect).");
+    
+    // Rule L2: UMN pattern
+    const babs = document.getElementById('v-ref-path').value;
+    const tone = document.getElementById('v-motor-tone').value;
+    if (babs.includes('+') && tone.includes('spastic')) locHints.push("Upper Motor Neuron (UMN) lesion pattern.");
+
+    // Rule L3 & Lacunar detection
     const isWeakR = Array.from(mpR).some(el => el.value < 5);
     const isWeakL = Array.from(mpL).some(el => el.value < 5);
     if (isWeakR || isWeakL) {
-        locs.push(isWeakR ? "Flag: Right-sided Hemiparesis." : "Flag: Left-sided Hemiparesis.");
-        if (nVals[5] === nVals[7] && nVals[7] === nVals[8] && nVals[5] !== '0') {
-            locs.push("Symmetric distribution (Face=Arm=Leg): Lacunar syndrome suspected.");
-        }
+        locHints.push(isWeakR ? "Right Hemiparesis." : "Left Hemiparesis.");
+        // Check if symmetric (Face/Arm/Leg NIHSS consistent)
+        if (nVals[4] === nVals[5] && nVals[5] === nVals[7]) locHints.push("Lacunar syndrome suspected (Symmetric weakness).");
     }
-    // Crossed Signs
-    const cnPosR = Array.from(document.querySelectorAll('.cn-input')).some(el => el.value === '+' && el.closest('.item-box').innerText.includes('R'));
-    const cnPosL = Array.from(document.querySelectorAll('.cn-input')).some(el => el.value === '+' && el.closest('.item-box').innerText.includes('L'));
-    if ((cnPosL && isWeakR) || (cnPosR && isWeakL)) {
-        locs.push("Crossed Signs detected: Suspect Brainstem lesion (Crossed hemiplegia).");
-    }
-    // Myelopathy
-    const sPin = document.getElementById('s-pin').value.toUpperCase();
-    if (sPin.includes('T') || sPin.includes('L') || sPin.includes('C')) {
-        locs.push(`Suspect spinal cord lesion at ${sPin} level.`);
-    }
-    document.getElementById('loc-list').innerHTML = locs.length > 0 ? locs.map(l => `<div class="loc-item">• ${l}</div>`).join('') : "No specific localization features detected.";
 
-    // --- Note Construction ---
+    // Crossed Signs
+    const hasRightCN = Array.from(document.querySelectorAll('.cn-input')).some(el => el.value === '+' && el.closest('.item-box').innerText.includes('R'));
+    const hasLeftCN = Array.from(document.querySelectorAll('.cn-input')).some(el => el.value === '+' && el.closest('.item-box').innerText.includes('L'));
+    if ((hasLeftCN && isWeakR) || (hasRightCN && isWeakL)) locHints.push("Suspect Brainstem lesion (Crossed hemiplegia).");
+
+    // Myelopathy
+    const sPin = document.getElementById('s-pin').value;
+    if (sPin.toLowerCase().includes('t')) locHints.push(`Suspect spinal cord lesion at ${sPin.toUpperCase()} level.`);
+
+    // 更新介面
+    document.getElementById('loc-content').innerHTML = locHints.length > 0 ? 
+        locHints.map(h => `<div class="loc-item">• ${h}</div>`).join('') : "輸入資料以進行定位分析...";
+
+    // 組合 Note
     let t = `【Neurological examination】\n`;
-    t += `${gcsLine}\n`; // GCS at Top
+    t += `${gcsNoteLine}\n`;
     t += `. Consciousness: ${document.querySelectorAll('.n-val')[0].options[document.querySelectorAll('.n-val')[0].selectedIndex].text.split(' ')[1] || 'clear'}\n\n`;
 
     t += `*Cranial nerve\n`;
@@ -458,7 +463,7 @@ function generateText() {
     t += `*UPDRS part III\n`;
     t += ` Speech: ${uS[0]}; Mask face: ${uS[1]}\n`;
     t += ` Tremor(RU/LU/RL/LL): Resting ${uSub[0]}/${uSub[1]}/${uSub[2]}/${uSub[3]}, Action ${uSub[4]}/${uSub[5]}\n`;
-    t += ` Rigidity(N/RU/LU/RL/LL): ${uSub[6]}/${uSub[7]}/${uSub[8]}/${uSub[9]}/${uSub[10]}\n`;
+    t += ` Rigidity(Neck/RU/LU/RL/LL): ${uSub[6]}/${uSub[7]}/${uSub[8]}/${uSub[9]}/${uSub[10]}\n`;
     t += ` R/L: Tapping ${uSub[11]}/${uSub[12]}, Grasp ${uSub[13]}/${uSub[14]}, RAM ${uSub[15]}/${uSub[16]}, Foot ${uSub[17]}/${uSub[18]}\n`;
     t += ` Gait/Pull/Stand/Brady: ${uS[11] || 0}/${uS[12] || 0}/${uS[9] || 0}/${uS[13] || 0}\n\n`;
 
