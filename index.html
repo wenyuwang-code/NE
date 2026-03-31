@@ -218,22 +218,101 @@ function autoUpdate() {
 
 function generateText() {
     const id = document.getElementById('v-id').value;
+    
+    // 抓取各項數據
+    const nSel = document.querySelectorAll('.n-val');
+    const nVals = Array.from(nSel).map(s => s.options[s.selectedIndex].text);
+    const nScores = Array.from(nSel).map(s => parseInt(s.value));
     const mpR = document.querySelectorAll('.mp-r'), mpL = document.querySelectorAll('.mp-l');
+    const getMP = (i) => `${mpR[i].value}/${mpL[i].value}`;
     const uS = Array.from(document.querySelectorAll('.u-val')).map(el => el.value);
     const uSub = Array.from(document.querySelectorAll('.u-val-sub')).map(el => el.value);
     const refs = document.querySelectorAll('.ref-val');
+    const jR = document.querySelectorAll('.j-r'), jL = document.querySelectorAll('.j-l');
+    const vR = document.querySelectorAll('.v-r'), vL = document.querySelectorAll('.v-l');
+    
+    const mmseVals = Array.from(document.querySelectorAll('.mmse-val')).map(el => parseInt(el.value));
+    const mTotal = mmseVals.reduce((a,b)=>a+b,0);
+    const mOriT = mmseVals.slice(0,5).reduce((a,b)=>a+b,0);
+    const mOriP = mmseVals.slice(5,10).reduce((a,b)=>a+b,0);
+    const mReg = mmseVals.slice(10,13).reduce((a,b)=>a+b,0);
+    const mSer7 = mmseVals.slice(13,18).reduce((a,b)=>a+b,0);
+    const mRecall = mmseVals.slice(18,21).reduce((a,b)=>a+b,0);
 
-    let t = `【Neurological Examination Note】\nChart No: ${id}\nDate: ${new Date().toLocaleDateString()}\n\n`;
-    t += `*Mental Status / Cognition\n  MMSE Score: ${document.getElementById('mmse-total').innerText}\n  Language: ${document.getElementById('v-cog-lang').value}\n  Luria 3-step: ${document.getElementById('v-cog-luria').value}\n\n`;
-    t += `*Motor System (R/L)\n`;
-    mpItems.forEach((n, i) => t += `  ${n.padEnd(20)}: ${mpR[i].value}/${mpL[i].value}\n`);
-    t += `  Inspection: ${document.getElementById('v-motor-ins').value}\n  Tone: ${document.getElementById('v-motor-tone').value}\n\n`;
-    t += `*Deep Tendon Reflexes (R/L)\n`;
-    ["Biceps", "Triceps", "Knee", "Ankle"].forEach((n, i) => t += `  ${n.padEnd(12)}: ${refs[i].value}\n`);
-    t += `  Pathological: ${document.getElementById('v-ref-path').value}\n\n`;
-    t += `*UPDRS Part III (Total: ${document.getElementById('updrs-total').innerText.split(': ')[1]})\n`;
-    t += `  Speech: ${uS[0]}, Mask face: ${uS[1]}\n  Tremor (RU/LU/RL/LL): ${uSub[0]}/${uSub[1]}/${uSub[2]}/${uSub[3]}\n\n`;
-    t += `*Stroke Scale\n  ${document.getElementById('nihss-total').innerText}\n`;
+    let t = `【Neurological examination】\n`;
+    t += `. Consciousness: ${nVals[0].split(' ')[1] || 'clear'}\n\n`;
+
+    t += `*Cranial nerve\n`;
+    t += `CN I :   smell, not performed , anosmia(-), hyposmia(-), hyperosmia(-), olfactory agnosia(-)\n`;
+    t += `CN II:   Visual acuity: Counts fingers(-), hand motion(-), light perception(-)\n`;
+    t += `         Visual fields: confrontation test-${nScores[4] == 0 ? 'intact' : 'impaired'}\n`;
+    t += `                        hemianopia(${nScores[4] > 0 ? '+' : '-'}, NIHSS Item 3: ${nVals[4]}), quadrantanopia(-)\n`;
+    t += `CN III, IV, VI:\n`;
+    t += `         Pupil: isocoric R/L: 3mm/3mm, light reflex R/L: +/+\n`;
+    t += `         EOM: NIHSS Gaze Score: ${nScores[3]} (${nVals[3]})\n`;
+    t += `         Primary gaze: at neutral positions without diplopia; Convergence: fair\n`;
+    t += `         Binocular diplopia(-); Pursuit: smooth, Saccade: no dysmetria\n`;
+    t += `CN V:    Corneal reflex(+/+)\n`;
+    t += `         Facial sensation: intact and symmetric to pinprick and light touch\n`;
+    t += `         Masseter R/L: full, Temporalis R/L: full\n`;
+    t += `CN VII : ${nScores[5] == 0 ? 'No Central/Peripheral type facial palsy' : 'Facial palsy present ('+nVals[5]+')'}\n`;
+    t += `         Nasolabial fold shallowing(${nScores[5] > 0 ? '+' : '-'})\n`;
+    t += `CN VIII: Bilateral hearing ability: fair by finger rubbing test\n`;
+    t += `         Weber test: no lateralization; Rinne test: bilatareal AC>BC\n`;
+    t += `CN IX,X: Uvula deviation(-), Gag reflex (+), dysarthria(${nScores[13] > 0 ? '+' : '-'})\n`;
+    t += `CN XI:   SCM: weakness(-), atrophy(-), 5/5; Trapezius: weakness(-), atrophy(-), 5/5\n`;
+    t += `CN XII:  Tongue protruding: deviation(-), atrophy(-), fasciculation(-)\n\n`;
+
+    t += `*Motor\n`;
+    t += `Motor inspection: ${document.getElementById('v-motor-ins').value}\n\n`;
+    t += `Muscle tone: ${document.getElementById('v-motor-tone').value}\n\n`;
+    t += `Muscle power:(R/L)\n`;
+    t += ` neck flexion/ extension  ${getMP(0)}\n`;
+    t += ` Shoulder abduction (C5)  ${getMP(1)}\n`;
+    t += ` Elbow flexion (C6) ${getMP(2)}; extension (C7) ${getMP(3)}\n`;
+    t += ` Wrist extension (C6) ${getMP(4)}\n`;
+    t += ` Finger flexion (C8)  ${getMP(5)}\n`;
+    t += ` Grasping (C8/T1)         ${getMP(6)}\n`;
+    t += ` Finger abduction (T1)    ${getMP(7)}\n`;
+    t += ` Hip flexion (L2)         ${getMP(8)}\n`;
+    t += ` Knee extension (L3)      ${getMP(9)}\n`;
+    t += ` Ankle dorsiflexion (L4)  ${getMP(10)}; plantarflexion(S1) ${getMP(11)}\n`;
+    t += ` Big toe extension (L5)   ${getMP(12)}\n\n`;
+    t += `pronator drift test: L/R: -/-;\n\n`;
+
+    t += `*Reflex\n`;
+    t += `Deep tendon reflex：(R/L)\n`;
+    t += ` Biceps(C5/6): ${refs[0].value}\n Triceps(C7): ${refs[1].value}\n Knee(L4): ${refs[2].value}\n Ankle(S1): ${refs[3].value}\n\n`;
+    t += `Babinski: ${document.getElementById('v-ref-path').value.split(',')[0].split(':')[1] || '-/-'}, Hoffman R/L: -/-, Jaw jerk: -\n\n`;
+
+    t += `*Sensation\n`;
+    t += `Light touch: ${document.getElementById('s-light').value}\n`;
+    t += `Pinprick & Temperature: ${document.getElementById('s-pin').value}\n`;
+    t += `Double simultaneous stimuli: no tactile neglect; Romberg test(${document.getElementById('s-romberg').value})\n\n`;
+    t += `Joint position (R, L):\n  Fingers: ${jR[0].value}/5, ${jL[0].value}/5\n  Toes: ${jR[1].value}/5, ${jL[1].value}/5\n`;
+    t += `Vibration (R, L):\n  Big toe: ${vR[0].value}/8, ${vL[0].value}/8\n  Finger: ${vR[1].value}/8, ${vL[1].value}/8\n\n`;
+
+    t += `UPDRS part III\n`;
+    t += `Speech: ${uS[0]}\nMask face: ${uS[1]}\n`;
+    t += `Resting tremor: RU/LU/RL/LL: ${uSub[0]}/${uSub[1]}/${uSub[2]}/${uSub[3]}\n`;
+    t += `Rigidity: Neck/RU/LU/RL/LL: ${uSub[6]}/${uSub[7]}/${uSub[8]}/${uSub[9]}/${uSub[10]}\n`;
+    t += `Finger tapping: R/L: ${uSub[11]}/${uSub[12]}\n`;
+    t += `Grasping: R/L: ${uSub[13]}/${uSub[14]}\n`;
+    t += `RAM: R/L: ${uSub[15]}/${uSub[16]}\n`;
+    t += `Foot tapping: R/L: ${uSub[17]}/${uSub[18]}\n`;
+    t += `Stand up: ${uS[2] || 0}; Posture: ${uS[3] || 0}; gait: ${uS[4] || 0}\n`;
+    t += `Pull test: ${uS[5] || 0}; Bradykinesia: ${uS[6] || 0}\n\n`;
+
+    t += `*Higher cortical functions/cognition\n`;
+    t += `. MMSE(${mTotal}/30):\n`;
+    t += `       - Orientation: time(${mOriT}/5) place(${mOriP}/5)\n`;
+    t += `       - 3-item registration(${mReg}/3)("黃色、生氣、火車")\n`;
+    t += `       - series-7(${mSer7}/5)\n`;
+    t += `       - 3-item recall(${mRecall}/3)\n`;
+    t += `       - Luria 3-step test: ${document.getElementById('v-cog-luria').value}\n\n`;
+
+    t += `NIHSS Total Score: ${document.getElementById('nihss-total').innerText.split(': ')[1]}\n`;
+    t += `Chart No: ${id}\n`;
 
     document.getElementById('export-area').value = t;
 }
