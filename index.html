@@ -1,107 +1,565 @@
-<div class="row" style="background: #e1f5fe; padding: 10px; border: 1px solid #01579b; gap:5px; border-radius: 8px; margin-top: 10px; flex-wrap: wrap;">
-    <div style="font-weight: bold; width: 100%; margin-bottom: 5px; color: #01579b;">GCS 快速評估</div>
-    <select id="gcs-e" onchange="autoUpdate()" style="flex:1; min-width: 120px;">
-        <option value="4">E4 (Spontaneous)</option>
-        <option value="3">E3 (To verbal)</option>
-        <option value="2">E2 (To pain)</option>
-        <option value="1">E1 (None)</option>
-        <option value="NT">E NT (Not testable)</option>
-    </select>
-    <select id="gcs-v" onchange="autoUpdate()" style="flex:1; min-width: 120px;">
-        <option value="5">V5 (Oriented)</option>
-        <option value="4">V4 (Confused)</option>
-        <option value="3">V3 (Inappropriate)</option>
-        <option value="2">V2 (Incomprehensible)</option>
-        <option value="1">V1 (None)</option>
-        <option value="NT">V NT (Intubated)</option>
-    </select>
-    <select id="gcs-m" onchange="autoUpdate()" style="flex:1; min-width: 120px;">
-        <option value="6">M6 (Obeys)</option>
-        <option value="5">M5 (Localizes)</option>
-        <option value="4">M4 (Withdrawal)</option>
-        <option value="3">M3 (Flexion)</option>
-        <option value="2">M2 (Extension)</option>
-        <option value="1">M1 (None)</option>
-        <option value="NT">M NT (Not testable)</option>
-    </select>
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>NE Note Master Pro - 臨床實務增強版</title>
+    <style>
+        body { font-family: 'Consolas', 'Monaco', monospace; background: #f4f7f6; color: #333; margin: 0; padding-bottom: 150px; }
+        .header { background: #2c3e50; padding: 10px; position: sticky; top: 0; z-index: 1000; box-shadow: 0 2px 5px rgba(0,0,0,0.2); }
+        .menu { display: flex; flex-wrap: wrap; gap: 4px; justify-content: center; }
+        .menu button { padding: 8px 12px; font-size: 13px; border: none; background: #34495e; color: white; border-radius: 4px; cursor: pointer; }
+        .menu button.active { background: #3498db; font-weight: bold; }
+        .menu button.export-btn { background: #27ae60; font-weight: bold; }
+        .menu button.history-btn { background: #8e44ad; font-weight: bold; }
+
+        .container { padding: 15px; max-width: 800px; margin: auto; background: white; min-height: 100vh; }
+        .section-title { background: #ecf0f1; padding: 10px; font-weight: bold; border-left: 6px solid #2c3e50; margin: 20px 0 10px; font-size: 1.1rem; color: #2c3e50; }
+        .sub-title { font-weight: bold; color: #d32f2f; margin: 15px 0 5px; font-size: 0.9rem; text-transform: uppercase; border-bottom: 1px solid #eee; }
+        
+        .row { display: flex; align-items: center; padding: 8px 0; border-bottom: 1px dashed #eee; }
+        .mp-row { display: flex; align-items: center; justify-content: space-between; padding: 8px 0; border-bottom: 1px dashed #eee; }
+        .label { flex: 2; font-weight: 600; font-size: 0.9rem; }
+        
+        input[type="text"], select { padding: 6px; border: 1px solid #ccc; border-radius: 4px; font-size: 0.9rem; width: 100%; box-sizing: border-box; }
+
+        .item-box { border-bottom: 1px solid #eee; padding: 10px 0; }
+        .item-label { font-weight: bold; color: #2c3e50; display: block; margin-bottom: 5px; }
+        .sub-row { display: flex; align-items: center; gap: 10px; margin-top: 5px; background: #f9f9f9; padding: 5px; border-radius: 4px; }
+        .sub-row span { flex: 1; font-size: 0.85rem; }
+        .sub-row .cn-input { flex: 2; }
+
+        .history-item { display: flex; justify-content: space-between; align-items: center; padding: 12px; border: 1px solid #ddd; margin-bottom: 8px; border-radius: 6px; background: #fff; cursor: pointer; transition: 0.2s; }
+        .history-item:hover { background: #f0f7ff; border-color: #3498db; }
+        .history-info { display: flex; flex-direction: column; }
+        .history-date { font-size: 11px; color: #7f8c8d; }
+        .history-cid { font-weight: bold; color: #2c3e50; font-size: 15px; }
+        .btn-del { background: #e74c3c; color: white; border: none; padding: 5px 10px; border-radius: 4px; cursor: pointer; }
+
+        .footer-bar { position: fixed; bottom: 0; width: 100%; background: white; border-top: 4px solid #2c3e50; padding: 10px; text-align: center; z-index: 999; box-shadow: 0 -2px 10px rgba(0,0,0,0.1); }
+        #export-area { width: 100%; height: 450px; font-size: 13px; background: #fafafa; border: 2px solid #333; padding: 10px; font-family: 'Consolas', monospace; }
+        .hidden { display: none; }
+        
+        .btn-save { background: #e67e22 !important; font-weight: bold; color: white; border: none; padding: 10px; border-radius: 4px; cursor: pointer; }
+        
+        /* New Styles for GCS and Localization */
+        .gcs-panel { background: #e3f2fd; border: 1px solid #90caf9; padding: 10px; border-radius: 8px; margin-top: 10px; display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 8px; }
+        .gcs-panel select { background: white; }
+        .loc-box { margin-top: 15px; padding: 12px; background: #fff3e0; border-left: 5px solid #ff9800; border-radius: 4px; }
+        .loc-title { color: #e65100; font-weight: bold; font-size: 0.9rem; margin-bottom: 5px; display: block; }
+        .loc-item { font-size: 0.85rem; color: #444; margin: 2px 0; }
+    </style>
+</head>
+<body>
+
+<div class="header">
+    <div class="menu">
+        <button onclick="show('cn')" id="b-cn">CN</button>
+        <button onclick="show('nihss')" id="b-nihss">NIHSS</button>
+        <button onclick="show('updrs')" id="b-updrs">UPDRS</button>
+        <button onclick="show('motor')" id="b-motor">Motor</button>
+        <button onclick="show('reflex')" id="b-reflex">Reflex</button>
+        <button onclick="show('sensory')" id="b-sensory">Sensory</button>
+        <button onclick="show('mmse')" id="b-mmse">MMSE</button>
+        <button onclick="show('history')" class="history-btn" id="b-history">HISTORY</button>
+        <button onclick="show('export')" class="export-btn" id="b-export">GENERATE NOTE</button>
+    </div>
 </div>
 
-<div id="localization-display" style="margin-top: 15px; padding: 15px; background: #fff3e0; border-left: 5px solid #ff9800; font-family: sans-serif;">
-    <strong style="color: #e65100;">[Initial Localization Guide]</strong>
-    <div id="loc-content" style="margin-top: 5px; font-size: 0.9rem; line-height: 1.4;">尚無足夠資訊進行定位</div>
+<div class="container">
+    <div class="row" style="background: #fffbe6; padding: 10px; border: 1px solid #ffe58f; gap:10px; border-radius: 8px; flex-wrap: wrap;">
+        <input type="text" id="v-id" placeholder="輸入病歷號碼 (Chart No)..." oninput="autoUpdate()" style="flex: 2; min-width: 200px;">
+        <button onclick="saveToHistory()" class="btn-save" style="flex: 1;">儲存至歷史清單</button>
+        
+        <div class="gcs-panel" style="width: 100%;">
+            <div><small>Eye</small>
+                <select id="v-gcs-e" onchange="autoUpdate()">
+                    <option value="4">Spontaneous (+4)</option>
+                    <option value="3">To verbal (+3)</option>
+                    <option value="2">To pain (+2)</option>
+                    <option value="1">No opening (+1)</option>
+                    <option value="NT">Not testable (NT)</option>
+                </select>
+            </div>
+            <div><small>Verbal</small>
+                <select id="v-gcs-v" onchange="autoUpdate()">
+                    <option value="5">Oriented (+5)</option>
+                    <option value="4">Confused (+4)</option>
+                    <option value="3">Inappropriate (+3)</option>
+                    <option value="2">Incomprehensible (+2)</option>
+                    <option value="1">No response (+1)</option>
+                    <option value="NT">NT/Intubated</option>
+                </select>
+            </div>
+            <div><small>Motor</small>
+                <select id="v-gcs-m" onchange="autoUpdate()">
+                    <option value="6">Obeys (+6)</option>
+                    <option value="5">Localizes (+5)</option>
+                    <option value="4">Withdrawal (+4)</option>
+                    <option value="3">Flexion (+3)</option>
+                    <option value="2">Extension (+2)</option>
+                    <option value="1">No response (+1)</option>
+                    <option value="NT">Not testable (NT)</option>
+                </select>
+            </div>
+        </div>
+    </div>
+
+    <div id="s-cn" class="sec hidden">
+        <div class="section-title">Cranial Nerves (CN)</div>
+        <div id="cn-container"></div>
+    </div>
+  
+    <div id="s-nihss" class="sec">
+        <div class="section-title">NIHSS 腦中風量表</div>
+        <div id="nihss-container"></div>
+    </div>
+
+    <div id="s-updrs" class="sec hidden">
+        <div class="section-title">UPDRS Part III 運動評分</div>
+        <div id="updrs-container"></div>
+    </div>
+
+    <div id="s-motor" class="sec hidden">
+        <div class="section-title">Motor Function</div>
+        <div class="row"><div class="label">Inspection</div><input type="text" id="v-motor-ins" value="muscle wasting(-), fasciculation(-)" oninput="autoUpdate()"></div>
+        <div class="row"><div class="label">Muscle Tone</div><input type="text" id="v-motor-tone" value="spasticity(-), rigidity(-)" oninput="autoUpdate()"></div>
+        <div class="sub-title">Muscle Power (R/L)</div>
+        <div id="mp-box"></div>
+    </div>
+
+    <div id="s-reflex" class="sec hidden">
+        <div class="section-title">Deep Tendon Reflexes</div>
+        <div id="reflex-box"></div>
+        <div class="row"><div class="label">Pathological</div><input type="text" id="v-ref-path" value="Babinski: -/-, Hoffman: -/-" oninput="autoUpdate()"></div>
+    </div>
+
+    <div id="s-sensory" class="sec hidden">
+        <div class="section-title">Sensory System</div>
+        <div class="mp-row"><span>Paraesthesia:</span><select id="s-para" onchange="autoUpdate()"><option>-</option><option>+</option></select></div>
+        <div id="joint-vibe-box"></div>
+        <div class="row"><span>Neglect:</span><input type="text" id="s-neglect" value="none" oninput="autoUpdate()"></div>
+        <div class="mp-row"><span>Romberg:</span><select id="s-romberg" onchange="autoUpdate()"><option>-</option><option>+</option></select></div>
+        <div class="sub-title">Small Fiber</div>
+        <div class="row"><span>Light touch:</span><input type="text" id="s-light" value="normal" oninput="autoUpdate()"></div>
+        <div class="row"><span>Pinprick:</span><input type="text" id="s-pin" value="normal" oninput="autoUpdate()"></div>
+    </div>
+
+    <div id="s-mmse" class="sec hidden">
+        <div class="section-title">MMSE 智能評估</div>
+        <div id="mmse-box"></div>
+        <div class="sub-title">Cognitive Details</div>
+        <div class="row"><span>Recall Choice (Correct):</span><input type="text" id="v-mmse-recall-choice" placeholder="數量" oninput="autoUpdate()"></div>
+        <div class="row"><span>Writing Content:</span><input type="text" id="v-mmse-writing-content" value="我是一個好人" oninput="autoUpdate()"></div>
+        <div class="row"><span>Luria 3-step:</span><input type="text" id="v-cog-luria" value="intact" oninput="autoUpdate()"></div>
+        <div class="row"><span>Language:</span><input type="text" id="v-cog-lang" value="fluent" oninput="autoUpdate()"></div>
+    </div>
+
+    <div id="s-history" class="sec hidden">
+        <div class="section-title">歷史暫存清單 (點擊查看)</div>
+        <div id="history-list">
+            <p style="color:#999; text-align:center;">尚無歷史紀錄</p>
+        </div>
+    </div>
+
+    <div id="s-export" class="sec hidden">
+        <div class="section-title">生成的純文字病歷 (即時更新)</div>
+        <textarea id="export-area" readonly></textarea>
+        <div style="display:flex; gap:10px; margin-top:10px;">
+            <button onclick="copyToClipboard()" style="flex:1; padding:15px; background:#3498db; color:white; border:none; cursor:pointer; font-weight:bold;">複製文字</button>
+            <button onclick="downloadTxt()" style="flex:1; padding:15px; background:#27ae60; color:white; border:none; cursor:pointer; font-weight:bold;">下載 .txt 檔案</button>
+        </div>
+        
+        <div id="loc-display" class="loc-box">
+            <span class="loc-title">Initial Localization Guide (Reference Only)</span>
+            <div id="loc-list"></div>
+        </div>
+    </div>
+</div>
+
+<div class="footer-bar">
+    <span id="nihss-total" style="color:#d32f2f; font-weight:bold; margin-right:15px;">NIHSS: 0</span>
+    <span id="updrs-total" style="color:#1976d2; font-weight:bold; margin-right:15px;">UPDRS: 0</span>
+    <span id="mmse-total" style="color:#388e3c; font-weight:bold;">MMSE: 30/30</span>
 </div>
 
 <script>
-// --- 修改 generateText 函式內容 ---
+// --- CN項目數據 ---
+const cnData = [
+    { label: "CN I: smell", items: ["not performed", "anosmia", "hyposmia", "hyperosmia", "olfactory agnosia"], type: 'select' },
+    { label: "CN II: Visual acuity", items: ["Counts fingers", "hand motion", "light perception"], type: 'select' },
+    { label: "CN II: Visual fields", items: [
+        { n: "confrontation test", type: 'text', def: "intact" },
+        { n: "hemianopia", type: 'select' },
+        { n: "quadrantanopia", type: 'select' }
+    ]},
+    { label: "CN III, IV, VI: Pupil", items: [
+        { n: "isocoric R/L", type: 'text', def: "3mm/3mm" },
+        { n: "light reflex R/L", type: 'text', def: "+/+" },
+        { n: "RAPD", type: 'text', def: "-/-" }
+    ]},
+    { label: "CN III, IV, VI: Others", items: [
+        { n: "EOM", type: 'text', def: "full" },
+        { n: "Primary gaze", type: 'text', def: "at neutral positions without diplopia" },
+        { n: "Convergence", type: 'text', def: "fair" },
+        { n: "Binocular diplopia", type: 'select' },
+        { n: "Pursuit", type: 'text', def: "smooth" },
+        { n: "Saccade", type: 'text', def: "no dysmetria" }
+    ]},
+    { label: "CN V", items: [
+        { n: "Corneal reflex", type: 'text', def: "+/+" },
+        { n: "Facial sensation", type: 'text', def: "intact and symmetric to pinprick and light touch" },
+        { n: "Masseter R/L", type: 'text', def: "full" },
+        { n: "Temporalis R/L", type: 'text', def: "full" }
+    ]},
+    { label: "CN VII", items: [
+        { n: "Facial palsy type", type: 'text', def: "No Central/Peripheral type facial palsy" },
+        { n: "Nasolabial fold shallowing", type: 'select' }
+    ]},
+    { label: "CN VIII", items: [
+        { n: "Hearing ability", type: 'text', def: "fair by finger rubbing test" },
+        { n: "Weber test", type: 'text', def: "no lateralization" },
+        { n: "Rinne test", type: 'text', def: "bilatareal AC>BC" }
+    ]},
+    { label: "CN IX, X", items: [
+        { n: "Uvula deviation", type: 'select' },
+        { n: "Gag reflex", type: 'text', def: "+" },
+        { n: "dysarthria", type: 'select' }
+    ]},
+    { label: "CN XI (SCM)", items: ["weakness", "atrophy"], type: 'select' },
+    { label: "CN XI (Trapezius)", items: ["weakness", "atrophy"], type: 'select' },
+    { label: "CN XII", items: ["deviation", "atrophy", "fasciculation"], type: 'select' }
+];
+
+const nihssFull = [
+    {n:"1a. 意識程度", opts:["0 清醒","1 嗜睡","2 呆滯","3 昏迷"]},
+    {n:"1b. 意識詢問", opts:["0 兩項正確","1 一項正確","2 兩項錯誤"]},
+    {n:"1c. 執行命令", opts:["0 兩項正確","1 一項正確","2 兩項錯誤"]},
+    {n:"2. 眼球運動", opts:["0 正常","1 部分限制","2 偏向一側"]},
+    {n:"3. 視野", opts:["0 正常","1 部分偏盲","2 偏盲","3 全盲"]},
+    {n:"4. 面部肌肉", opts:["0 正常","1 稍歪斜","2 一側不動","3 全癱"]},
+    {n:"5a. 左上肢", opts:["0 正常","1 微掉","2 慢慢掉","3 水平活動","4 無法活動"]},
+    {n:"5b. 右上肢", opts:["0 正常","1 微掉","2 慢慢掉","3 水平活動","4 無法活動"]},
+    {n:"6a. 左下肢", opts:["0 正常","1 微掉","2 慢慢掉","3 水平活動","4 無法活動"]},
+    {n:"6b. 右下肢", opts:["0 正常","1 微掉","2 慢慢掉","3 水平活動","4 無法活動"]},
+    {n:"7. 肢體失調", opts:["0 無","1 一肢","2 兩肢"]},
+    {n:"8. 感覺功能", opts:["0 正常","1 部分喪失","2 全部喪失"]},
+    {n:"9. 語言功能", opts:["0 正常","1 輕微缺損","2 嚴重缺損","3 失語"]},
+    {n:"10. 構音困難", opts:["0 正常","1 部分瞭解","2 無法瞭解"]},
+    {n:"11. 忽略", opts:["0 正常","1 一項","2 多項"]}
+];
+
+const updrsFull = [
+    {n:"語言 (Speech)", type:"single", opts:["0 正常","1 輕微","2 中度","3 重度","4 了解困難"]},
+    {n:"面部表情 (Masked Face)", type:"single", opts:["0 正常","1 輕微","2 明顯減少","3 中度","4 僵硬"]},
+    {n:"靜止型顫抖", type:"4limb", k:["RU","LU","RL","LL"], opts:["0 沒有","1 輕微","2 間歇中度","3 中度常現","4 幅度大"]},
+    {n:"動作姿勢型顫抖", type:"rl", k:["R","L"], opts:["0 沒有","1 輕微","2 中度","3 姿勢性","4 重度"]},
+    {n:"僵硬 (Rigidity)", type:"rigidity", k:["Neck","RU","LU","RL","LL"], opts:["0 沒有","1 極輕微","2 輕微","3 明顯","4 嚴重"]},
+    {n:"手指打拍", type:"rl", k:["R","L"], opts:["0 正常","1 遲緩幅度小","2 中度","3 重度","4 無法"]},
+    {n:"手掌握合", type:"rl", k:["R","L"], opts:["0 正常","1 緩慢","2 中度","3 重度","4 無法"]},
+    {n:"前臂迴旋 (RAM)", type:"rl", k:["R","L"], opts:["0 正常","1 輕度","2 中度","3 重度","4 無法"]},
+    {n:"兩腳靈敏度", type:"rl", k:["R","L"], opts:["0 正常","1 輕度","2 中度","3 重度","4 無法"]},
+    {n:"起立", type:"single", opts:["0 正常","1 遲緩","2 需推把手","3 易後跌","4 需人幫"]},
+    {n:"姿勢", type:"single", opts:["0 挺直","1 輕微駝背","2 明顯異常","3 中度","4 嚴重"]},
+    {n:"步態 (Gait)", type:"single", opts:["0 正常","1 拖步","2 困難","3 極端困難","4 不能走"]},
+    {n:"姿勢平穩度", type:"single", opts:["0 正常","1 後退","2 無反應","3 不穩","4 需幫"]},
+    {n:"全身遲緩", type:"single", opts:["0 正常","1 稍微","2 輕度","3 中度","4 重度"]}
+];
+
+const mmseQs = ["年份","季節","日期","禮拜","月份","省/市","縣/市","區/鄉鎮","醫院","樓層","複述:藍","複述:悲","複述:火","100-7","93-7","86-7","79-7","72-7","回憶:藍","回憶:悲","回憶:火","辨認:手錶","辨認:鉛筆","複誦句子","閉眼動作","拿紙","摺紙","放紙","寫句子","畫圖"];
+const mpItems = ["Neck flex/ext", "Shoulder abd (C5)", "Elbow flex (C6)", "Elbow ext (C7)", "Wrist ext (C6)", "Finger flex (C8)", "Grasping (C8/T1)", "Finger abd (T1)", "Hip flex (L2)", "Knee ext (L3)", "Ankle dorsi (L4)", "Ankle plantar (S1)", "Big toe ext (L5)"];
+
+function init() {
+    const cnBox = document.getElementById('cn-container');
+    cnData.forEach(group => {
+        let html = `<div class="item-box"><span class="item-label">${group.label}</span>`;
+        group.items.forEach(it => {
+            const name = typeof it === 'string' ? it : it.n;
+            const type = typeof it === 'string' ? group.type : it.type;
+            const defVal = it.def || "";
+            html += `<div class="sub-row"><span>${name}:</span>`;
+            if (type === 'select') {
+                html += `<select class="cn-input" data-name="${name}" onchange="autoUpdate()"><option value="-">-</option><option value="+">+</option><option value="not performed">N/P</option></select>`;
+            } else {
+                html += `<input type="text" class="cn-input" data-name="${name}" value="${defVal}" oninput="autoUpdate()">`;
+            }
+            html += `</div>`;
+        });
+        cnBox.innerHTML += html + `</div>`;
+    });
+
+    const nBox = document.getElementById('nihss-container');
+    nihssFull.forEach(item => {
+        nBox.innerHTML += `<div class="item-box"><span class="item-label">${item.n}</span><select class="n-val" onchange="autoUpdate()">${item.opts.map((o,v)=>`<option value="${v}">${o}</option>`).join('')}</select></div>`;
+    });
+
+    const uBox = document.getElementById('updrs-container');
+    updrsFull.forEach(item => {
+        let html = `<div class="item-box"><span class="item-label">${item.n}</span>`;
+        if(item.type === "single") html += `<select class="u-val" onchange="autoUpdate()">${item.opts.map((o,v)=>`<option value="${v}">${o}</option>`).join('')}</select>`;
+        else item.k.forEach(k => { html += `<div class="sub-row"><span>${k}:</span><select class="u-val-sub" onchange="autoUpdate()">${item.opts.map((o,v)=>`<option value="${v}">${o}</option>`).join('')}</select></div>`; });
+        uBox.innerHTML += html + `</div>`;
+    });
+
+    const mpBox = document.getElementById('mp-box');
+    mpItems.forEach(it => {
+        let opts = [5,4,3,2,1,0].map(v => `<option value="${v}" ${v==5?'selected':''}>${v}</option>`).join('');
+        mpBox.innerHTML += `<div class="mp-row"><span>${it}</span><div>R:<select class="mp-r" onchange="autoUpdate()">${opts}</select> L:<select class="mp-l" onchange="autoUpdate()">${opts}</select></div></div>`;
+    });
+
+    const jvBox = document.getElementById('joint-vibe-box');
+    ["Fingers", "Toes"].forEach(it => jvBox.innerHTML += `<div class="mp-row"><span>${it} Joint Position</span><div>R:<select class="j-r" onchange="autoUpdate()"></select> L:<select class="j-l" onchange="autoUpdate()"></select></div></div>`);
+    document.querySelectorAll('.j-r, .j-l').forEach(el => el.innerHTML = [5,4,3,2,1,0].map(v=>`<option ${v==5?'selected':''}>${v}</option>`).join(''));
+    
+    const vOpts = []; for(let i=80; i>=0; i-=5) vOpts.push((i/10).toFixed(1));
+    ["Big toe", "Finger"].forEach(it => jvBox.innerHTML += `<div class="mp-row"><span>${it} Vibration</span><div>R:<select class="v-r" onchange="autoUpdate()">${vOpts.map(v=>`<option ${v=='8.0'?'selected':''}>${v}</option>`).join('')}</select> L:<select class="v-l" onchange="autoUpdate()">${vOpts.map(v=>`<option ${v=='8.0'?'selected':''}>${v}</option>`).join('')}</select></div></div>`);
+
+    const rBox = document.getElementById('reflex-box');
+    ["Biceps", "Triceps", "Knee", "Ankle"].forEach(it => rBox.innerHTML += `<div class="row"><span class="label">${it} (R/L)</span><input type="text" class="ref-val" value="++/++" oninput="autoUpdate()"></div>`);
+
+    const mBox = document.getElementById('mmse-box');
+    mmseQs.forEach((q, i) => mBox.innerHTML += `<div class="mp-row" style="font-size:0.8rem;"><span>${i+1}. ${q}</span><select class="mmse-val" onchange="autoUpdate()"><option value="1">1</option><option value="0">0</option></select></div>`);
+
+    renderHistory();
+    autoUpdate();
+}
+
+function autoUpdate() {
+    const nTotal = Array.from(document.querySelectorAll('.n-val')).reduce((a,b)=>a+parseInt(b.value),0);
+    document.getElementById('nihss-total').innerText = "NIHSS: " + nTotal;
+    const uTotal = Array.from(document.querySelectorAll('.u-val, .u-val-sub')).reduce((a,b)=>a+parseInt(b.value),0);
+    document.getElementById('updrs-total').innerText = "UPDRS: " + uTotal;
+    const mTotal = Array.from(document.querySelectorAll('.mmse-val')).reduce((a,b)=>a+parseInt(b.value),0);
+    document.getElementById('mmse-total').innerText = `MMSE: ${mTotal}/30`;
+    generateText();
+}
+
 function generateText() {
     const id = document.getElementById('v-id').value;
+    const getCN = (name) => {
+        const el = document.querySelector(`.cn-input[data-name="${name}"]`);
+        return el ? el.value : "";
+    };
     
-    // 1. GCS 邏輯
-    const e = document.getElementById('gcs-e').value;
-    const v = document.getElementById('gcs-v').value;
-    const m = document.getElementById('gcs-m').value;
-    let gcsTotal = (e === 'NT' || v === 'NT' || m === 'NT') ? 'NT' : (parseInt(e) + parseInt(v) + parseInt(m));
-    const gcsLine = `GCS: E${e}V${v}M${m}, Total: ${gcsTotal}`;
+    // GCS 邏輯
+    const ge = document.getElementById('v-gcs-e').value;
+    const gv = document.getElementById('v-gcs-v').value;
+    const gm = document.getElementById('v-gcs-m').value;
+    const gTotal = (ge === 'NT' || gv === 'NT' || gm === 'NT') ? 'NT' : (parseInt(ge) + parseInt(gv) + parseInt(gm));
+    const gcsLine = `GCS: E${ge}V${gv}M${gm}, Total: ${gTotal}`;
 
-    // (中間原本獲取各種資料的 getCN, getMP, nVals, mmseVals 邏輯保持完全不變...)
-    // ... 假設這裡延續你原本的變數定義 ...
+    const mpR = document.querySelectorAll('.mp-r'), mpL = document.querySelectorAll('.mp-l');
+    const getMP = (i) => `${mpR[i].value}/${mpL[i].value}`;
+    const uS = Array.from(document.querySelectorAll('.u-val')).map(el => el.options[el.selectedIndex].text);
+    const uSub = Array.from(document.querySelectorAll('.u-val-sub')).map(el => el.value);
+    const refs = document.querySelectorAll('.ref-val');
+    const jR = document.querySelectorAll('.j-r'), jL = document.querySelectorAll('.j-l');
+    const vR = document.querySelectorAll('.v-r'), vL = document.querySelectorAll('.v-l');
+    
+    const mmseVals = Array.from(document.querySelectorAll('.mmse-val')).map(el => parseInt(el.value));
+    const mTotal = mmseVals.reduce((a,b)=>a+b,0);
+    const mOriT = mmseVals.slice(0,5).reduce((a,b)=>a+b,0);
+    const mOriP = mmseVals.slice(5,10).reduce((a,b)=>a+b,0);
+    const mReg = mmseVals.slice(10,13).reduce((a,b)=>a+b,0);
+    const mSer7 = mmseVals.slice(13,18).reduce((a,b)=>a+b,0);
+    const mRecall = mmseVals.slice(18,21).reduce((a,b)=>a+b,0);
+    const mNaming = mmseVals.slice(21,23).reduce((a,b)=>a+b,0);
+    const mRepeat = mmseVals[23];
+    const mAction = mmseVals[24];
+    const m3Step = mmseVals.slice(25,28).reduce((a,b)=>a+b,0);
+    const mWriting = mmseVals[28];
+    const mConst = mmseVals[29];
 
-    // 2. Localization 邏輯推論
-    let locHints = [];
     const nVals = Array.from(document.querySelectorAll('.n-val')).map(el => el.value);
     const nTotal = nVals.reduce((a,b)=>a+parseInt(b),0);
-    
-    // Rule L1: Cortical signs
-    if (parseInt(nVals[12]) > 0 || parseInt(nVals[14]) > 0) { // NIHSS 9 (Language) or 11 (Neglect)
-        locHints.push("Cortical signs present (Aphasia/Neglect).");
-    }
+    const nPart1 = nVals.slice(0,3).join('');
+    const nPart2 = nVals.slice(3,6).join('');
+    const nPart3 = nVals.slice(6,10).join('');
+    const nPart4 = nVals.slice(10,15).join('');
+    const nihssLine = `NIHSS = ${nTotal} (${nPart1} ${nPart2} ${nPart3} ${nPart4})`;
 
-    // Rule L2: UMN pattern
-    const babinski = document.getElementById('v-ref-path').value.toLowerCase();
-    const muscleTone = document.getElementById('v-motor-tone').value.toLowerCase();
-    if (babinski.includes('+/+') && (muscleTone.includes('spastic') || muscleTone.includes('rigid'))) {
-        locHints.push("Upper Motor Neuron (UMN) lesion pattern detected.");
+    // --- Localization Logic ---
+    let locs = [];
+    // Rule L1 & Cortical check
+    if (parseInt(nVals[12]) > 0 || parseInt(nVals[14]) > 0 || document.getElementById('v-cog-lang').value.toLowerCase().includes('aphasia')) {
+        locs.push("Cortical involvement suspected (due to Neglect/Aphasia).");
     }
-
-    // Rule L3: Hemiparesis distribution
-    const mpR = document.querySelectorAll('.mp-r'), mpL = document.querySelectorAll('.mp-l');
-    const isWeakR = (Array.from(mpR).some(el => el.value < 5));
-    const isWeakL = (Array.from(mpL).some(el => el.value < 5));
+    // Rule L2: UMN
+    if (document.getElementById('v-ref-path').value.includes('+/+') && document.getElementById('v-motor-tone').value.toLowerCase().includes('spastic')) {
+        locs.push("Upper Motor Neuron (UMN) lesion pattern (Spasticity + Babinski).");
+    }
+    // Rule L3: Hemiparesis & Lacunar
+    const isWeakR = Array.from(mpR).some(el => el.value < 5);
+    const isWeakL = Array.from(mpL).some(el => el.value < 5);
     if (isWeakR || isWeakL) {
-        locHints.push(isWeakR ? "Right-sided Hemiparesis." : "Left-sided Hemiparesis.");
-        
-        // Lacunar vs Cortical check (均勻度)
-        if (nVals[5] === nVals[7] && nVals[7] === nVals[8]) { // Face/Arm/Leg NIHSS 一致
-             locHints.push("Symmetric weakness distribution: Lacunar syndrome suspected.");
+        locs.push(isWeakR ? "Flag: Right-sided Hemiparesis." : "Flag: Left-sided Hemiparesis.");
+        if (nVals[5] === nVals[7] && nVals[7] === nVals[8] && nVals[5] !== '0') {
+            locs.push("Symmetric distribution (Face=Arm=Leg): Lacunar syndrome suspected.");
         }
     }
-
-    // Rule: Crossed Signs (CN vs Motor)
-    // 簡單判定：CN 有選 '+' 且對側肢體無力
-    const hasRightCN = Array.from(document.querySelectorAll('.cn-input')).some(el => el.value === '+' && el.closest('.sub-row').innerText.includes('R'));
-    const hasLeftCN = Array.from(document.querySelectorAll('.cn-input')).some(el => el.value === '+' && el.closest('.sub-row').innerText.includes('L'));
-    if ((hasLeftCN && isWeakR) || (hasRightCN && isWeakL)) {
-        locHints.push("Crossed Signs detected: Suspect Brainstem lesion (Crossed hemiplegia).");
+    // Crossed Signs
+    const cnPosR = Array.from(document.querySelectorAll('.cn-input')).some(el => el.value === '+' && el.closest('.item-box').innerText.includes('R'));
+    const cnPosL = Array.from(document.querySelectorAll('.cn-input')).some(el => el.value === '+' && el.closest('.item-box').innerText.includes('L'));
+    if ((cnPosL && isWeakR) || (cnPosR && isWeakL)) {
+        locs.push("Crossed Signs detected: Suspect Brainstem lesion (Crossed hemiplegia).");
     }
-
-    // Rule: Myelopathy Level
-    const sensoryPin = document.getElementById('s-pin').value;
-    if (sensoryPin.toLowerCase().includes('t')) {
-        locHints.push(`Suspect spinal cord lesion at ${sensoryPin.toUpperCase()} level.`);
+    // Myelopathy
+    const sPin = document.getElementById('s-pin').value.toUpperCase();
+    if (sPin.includes('T') || sPin.includes('L') || sPin.includes('C')) {
+        locs.push(`Suspect spinal cord lesion at ${sPin} level.`);
     }
+    document.getElementById('loc-list').innerHTML = locs.length > 0 ? locs.map(l => `<div class="loc-item">• ${l}</div>`).join('') : "No specific localization features detected.";
 
-    // 更新 Localization UI
-    document.getElementById('loc-content').innerHTML = locHints.length > 0 ? 
-        `<ul>${locHints.map(h => `<li>${h}</li>`).join('')}</ul>` : "根據目前數值尚未發現明顯定位特徵。";
-
-    // 3. 組合 Note (將 GCS 放在最上方)
+    // --- Note Construction ---
     let t = `【Neurological examination】\n`;
-    t += `${gcsLine}\n`; // GCS 置頂
+    t += `${gcsLine}\n`; // GCS at Top
     t += `. Consciousness: ${document.querySelectorAll('.n-val')[0].options[document.querySelectorAll('.n-val')[0].selectedIndex].text.split(' ')[1] || 'clear'}\n\n`;
 
-    // ... (後續原本的 *Cranial nerve, *Motor, *Reflex, *Sensation, *UPDRS, *Mental Status, NIHSS 組合邏輯完全不變) ...
-    // ...
-    
+    t += `*Cranial nerve\n`;
+    t += `CN I : smell(${getCN('not performed')}), anosmia(${getCN('anosmia')}), hyposmia(${getCN('hyposmia')}), hyperosmia(${getCN('hyperosmia')}), olfactory agnosia(${getCN('olfactory agnosia')})\n`;
+    t += `CN II: Visual acuity: Counts fingers(${getCN('Counts fingers')}), hand motion(${getCN('hand motion')}), light perception(${getCN('light perception')})\n`;
+    t += `       Visual fields: confrontation test-${getCN('confrontation test')}\n`;
+    t += `                      hemianopia(${getCN('hemianopia')}), quadrantanopia(${getCN('quadrantanopia')})\n`;
+    t += `CN III, IV, VI:\n`;
+    t += `       Pupil: isocoric R/L: ${getCN('isocoric R/L')}, light reflex R/L: ${getCN('light reflex R/L')}, RAPD(${getCN('RAPD')})\n`;
+    t += `       EOM: ${getCN('EOM')}; Primary gaze: ${getCN('Primary gaze')}\n`;
+    t += `       Convergence: ${getCN('Convergence')}; Binocular diplopia(${getCN('Binocular diplopia')})\n`;
+    t += `       Pursuit: ${getCN('Pursuit')}; Saccade: ${getCN('Saccade')}\n`;
+    t += `CN V:  Corneal reflex(${getCN('Corneal reflex')}); Facial sensation: ${getCN('Facial sensation')}\n`;
+    t += `       Masseter R/L: ${getCN('Masseter R/L')}, Temporalis R/L: ${getCN('Temporalis R/L')}\n`;
+    t += `CN VII : ${getCN('Facial palsy type')}; Nasolabial fold shallowing(${getCN('Nasolabial fold shallowing')})\n`;
+    t += `CN VIII: Hearing: ${getCN('Hearing ability')}; Weber: ${getCN('Weber test')}; Rinne: ${getCN('Rinne test')}\n`;
+    t += `CN IX,X: Uvula dev(${getCN('Uvula deviation')}), Gag(${getCN('Gag reflex')}), dysarthria(${getCN('dysarthria')})\n`;
+    t += `CN XI:  SCM: weak(${getCN('weakness')}), atrophy(${getCN('atrophy')}); Trapezius: weak(${getCN('weakness')}), atrophy(${getCN('atrophy')})\n`;
+    t += `CN XII: Tongue: dev(${getCN('deviation')}), atrophy(${getCN('atrophy')}), fasc(${getCN('fasciculation')})\n\n`;
+
+    t += `*Motor\n`;
+    t += `Motor inspection: ${document.getElementById('v-motor-ins').value}\n`;
+    t += `Muscle tone: ${document.getElementById('v-motor-tone').value}\n`;
+    t += `Muscle power:(R/L)\n`;
+    t += ` Neck F/E: ${getMP(0)}; Shoulder abd: ${getMP(1)}\n`;
+    t += ` Elbow F/E: ${getMP(2)}/${getMP(3)}; Wrist ext: ${getMP(4)}\n`;
+    t += ` Finger flex/Grasp/abd: ${getMP(5)}/${getMP(6)}/${getMP(7)}\n`;
+    t += ` Hip flex: ${getMP(8)}; Knee ext: ${getMP(9)}\n`;
+    t += ` Ankle D/P: ${getMP(10)}/${getMP(11)}; Big toe ext: ${getMP(12)}\n\n`;
+
+    t += `*Reflex (R/L)\n`;
+    t += ` Biceps: ${refs[0].value}; Triceps: ${refs[1].value}\n`;
+    t += ` Knee: ${refs[2].value}; Ankle: ${refs[3].value}\n`;
+    t += ` Pathological: ${document.getElementById('v-ref-path').value}\n\n`;
+
+    t += `*Sensation\n`;
+    t += ` Light touch/Pinprick: ${document.getElementById('s-light').value}/${document.getElementById('s-pin').value}\n`;
+    t += ` Paraesthesia: ${document.getElementById('s-para').value}; Neglect: ${document.getElementById('s-neglect').value}\n`;
+    t += ` Romberg: ${document.getElementById('s-romberg').value}\n`;
+    t += ` Joint Position(R/L): Fingers ${jR[0].value}/${jL[0].value}, Toes ${jR[1].value}/${jL[1].value}\n`;
+    t += ` Vibration(R/L): Big toe ${vR[0].value}/8, Finger ${vR[1].value}/8\n\n`;
+
+    t += `*UPDRS part III\n`;
+    t += ` Speech: ${uS[0]}; Mask face: ${uS[1]}\n`;
+    t += ` Tremor(RU/LU/RL/LL): Resting ${uSub[0]}/${uSub[1]}/${uSub[2]}/${uSub[3]}, Action ${uSub[4]}/${uSub[5]}\n`;
+    t += ` Rigidity(N/RU/LU/RL/LL): ${uSub[6]}/${uSub[7]}/${uSub[8]}/${uSub[9]}/${uSub[10]}\n`;
+    t += ` R/L: Tapping ${uSub[11]}/${uSub[12]}, Grasp ${uSub[13]}/${uSub[14]}, RAM ${uSub[15]}/${uSub[16]}, Foot ${uSub[17]}/${uSub[18]}\n`;
+    t += ` Gait/Pull/Stand/Brady: ${uS[11] || 0}/${uS[12] || 0}/${uS[9] || 0}/${uS[13] || 0}\n\n`;
+
+    t += `*Mental Status\n`;
+    t += ` MMSE Total: ${mTotal}/30\n`;
+    t += ` - Orientation: time(${mOriT}/5) place(${mOriP}/5)\n`;
+    t += ` - 3-item registration(${mReg}/3)("黃色、生氣、火車")\n`;
+    t += ` - series-7(${mSer7}/5)\n`;
+    t += ` - 3-item recall(${mRecall}/3)(${document.getElementById('v-mmse-recall-choice').value || '__'} correct by choice, another failed even choice)\n`;
+    t += ` - naming(${mNaming}/2) repeat(${mRepeat}/1) reading(${mAction}/1) writing(${mWriting}/1)("${document.getElementById('v-mmse-writing-content').value || '____'}")\n`;
+    t += ` - 3-step orders(${m3Step}/3)\n`;
+    t += ` - construction(${mConst}/1)\n\n`;
+    t += ` Luria: ${document.getElementById('v-cog-luria').value}; Language: ${document.getElementById('v-cog-lang').value}\n\n`;
+
+    t += `${nihssLine}\n`;
+    t += `Chart No: ${id}\n`;
+
     document.getElementById('export-area').value = t;
 }
+
+function show(id) {
+    document.querySelectorAll('.sec').forEach(s => s.classList.add('hidden'));
+    document.getElementById('s-' + id).classList.remove('hidden');
+    document.querySelectorAll('.menu button').forEach(b => b.classList.remove('active'));
+    const targetBtn = document.getElementById('b-' + id);
+    if(targetBtn) targetBtn.classList.add('active');
+}
+
+function saveToHistory() {
+    const cid = document.getElementById('v-id').value;
+    if(!cid) return alert("請輸入病歷號碼再儲存！");
+    const record = {
+        time: new Date().toLocaleString(),
+        chartNo: cid,
+        selects: Array.from(document.querySelectorAll('select')).map(s => s.value),
+        texts: Array.from(document.querySelectorAll('input[type="text"]')).map(t => t.value)
+    };
+    let history = JSON.parse(localStorage.getItem('ne_history_v2') || '[]');
+    history.unshift(record);
+    localStorage.setItem('ne_history_v2', JSON.stringify(history));
+    renderHistory();
+    alert("儲存成功！");
+}
+
+function renderHistory() {
+    const listDiv = document.getElementById('history-list');
+    const history = JSON.parse(localStorage.getItem('ne_history_v2') || '[]');
+    if(history.length === 0) {
+        listDiv.innerHTML = `<p style="color:#999; text-align:center;">尚無歷史紀錄</p>`;
+        return;
+    }
+    listDiv.innerHTML = history.map((rec, index) => `
+        <div class="history-item" onclick="loadRecord(${index})">
+            <div class="history-info">
+                <span class="history-cid">ID: ${rec.chartNo}</span>
+                <span class="history-date">${rec.time}</span>
+            </div>
+            <button class="btn-del" onclick="deleteRecord(event, ${index})">刪除</button>
+        </div>
+    `).join('');
+}
+
+function loadRecord(index) {
+    const history = JSON.parse(localStorage.getItem('ne_history_v2') || '[]');
+    const rec = history[index];
+    const selects = document.querySelectorAll('select');
+    const texts = document.querySelectorAll('input[type="text"]');
+    if(rec.selects) rec.selects.forEach((v, i) => { if(selects[i]) selects[i].value = v; });
+    if(rec.texts) rec.texts.forEach((v, i) => { if(texts[i]) texts[i].value = v; });
+    document.getElementById('v-id').value = rec.chartNo;
+    autoUpdate();
+    show('export');
+}
+
+function deleteRecord(event, index) {
+    event.stopPropagation();
+    if(!confirm("確定刪除？")) return;
+    let history = JSON.parse(localStorage.getItem('ne_history_v2') || '[]');
+    history.splice(index, 1);
+    localStorage.setItem('ne_history_v2', JSON.stringify(history));
+    renderHistory();
+}
+
+function copyToClipboard() {
+    const area = document.getElementById('export-area');
+    area.select();
+    document.execCommand('copy');
+    alert("已複製到剪貼簿");
+}
+
+function downloadTxt() {
+    const text = document.getElementById('export-area').value;
+    const blob = new Blob([text], {type: "text/plain"});
+    const a = document.createElement("a");
+    a.href = URL.createObjectURL(blob);
+    a.download = `NE_${document.getElementById('v-id').value || 'Report'}.txt`;
+    a.click();
+}
+
+init(); 
+show('nihss');
 </script>
+</body>
+</html>
