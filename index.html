@@ -326,7 +326,7 @@ function init() {
     const pBox = document.getElementById('patho-reflex-box');
     // --- 修正處：將選項改為只有 + 與 - ---
     const pathoOpts = ["-", "+"].map(v => `<option value="${v}" ${v=='-'?'selected':''}>${v}</option>`).join('');
-    ["Babinski", "Hoffman"].forEach(it => {
+    ["Babinski", "Hoffman", "Snouting", "Rooting", "Palmo-mental", "Grasping"].forEach(it => {
         pBox.innerHTML += `<div class="mp-row"><span>${it}</span><div>R:<select class="patho-r" onchange="autoUpdate()">${pathoOpts}</select> L:<select class="patho-l" onchange="autoUpdate()">${pathoOpts}</select></div></div>`;
     });
 
@@ -455,7 +455,8 @@ function generateText() {
     t += `*Reflex (R/L)\n`;
     t += ` Biceps(C5/6): ${getRef(0)}; Triceps(C7): ${getRef(1)}; Brachioradialis(C5/6): ${getRef(2)}\n`;
     t += ` Knee: ${getRef(2)}; Ankle: ${getRef(3)}\n`;
-    t += ` Pathological: Babinski: ${getPatho(0)}, Hoffman: ${getPatho(1)}\n\n`;
+    t += ` Pathological: Babinski: ${getPatho(0)}, Hoffman: ${getPatho(1)}, Snouting: ${getPatho(2)}\n`;
+    t += `   Rooting: ${getPatho(3)}, Palmo-mental: ${getPatho(4)}, Grasping: ${getPatho(5)}\n\n`;
 
     t += `*Sensation\n`;
     t += ` Light touch/Pinprick: ${document.getElementById('s-light').value}/${document.getElementById('s-pin').value}\n`;
