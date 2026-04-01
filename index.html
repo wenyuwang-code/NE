@@ -319,7 +319,7 @@ function init() {
 
     const rBox = document.getElementById('reflex-box');
     const refOpts = ["mute", "-", "+", "++", "+++", "++++"].map(v => `<option value="${v}" ${v=='++'?'selected':''}>${v}</option>`).join('');
-    ["Biceps", "Triceps", "Knee", "Ankle"].forEach(it => {
+    ["Biceps(C5/6)", "Triceps(C7)", "Brachioradialis(C5/6)", "Knee(L4)", "Ankle(S1)"].forEach(it => {
         rBox.innerHTML += `<div class="mp-row"><span>${it}</span><div>R:<select class="ref-r" onchange="autoUpdate()">${refOpts}</select> L:<select class="ref-l" onchange="autoUpdate()">${refOpts}</select></div></div>`;
     });
 
@@ -453,7 +453,7 @@ function generateText() {
     t += ` Ankle dorsiflexion/plantarflexion: ${getMP(10)}/${getMP(11)}; Big toe extension: ${getMP(12)}\n\n`;
 
     t += `*Reflex (R/L)\n`;
-    t += ` Biceps: ${getRef(0)}; Triceps: ${getRef(1)}\n`;
+    t += ` Biceps(C5/6): ${getRef(0)}; Triceps(C7): ${getRef(1)}; Brachioradialis(C5/6): ${getRef(2)}\n`;
     t += ` Knee: ${getRef(2)}; Ankle: ${getRef(3)}\n`;
     t += ` Pathological: Babinski: ${getPatho(0)}, Hoffman: ${getPatho(1)}\n\n`;
 
