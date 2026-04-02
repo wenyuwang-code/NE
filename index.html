@@ -269,8 +269,25 @@ const updrsFull = [
 ];
 
 const mmseQs = ["年份","季節","日期","禮拜","月份","省/市","縣/市","區/鄉鎮","醫院","樓層","複述:藍","複述:悲","複述:火","100-7","93-7","86-7","79-7","72-7","回憶:藍","回憶:悲","回憶:火","辨認:手錶","辨認:鉛筆","複誦句子","閉眼動作","拿紙","摺紙","放紙","寫句子","畫圖"];
-const mpItems = ["Neck flexion/extension", "Shoulder abduction (C5)", "Elbow flexion (C6)", "Elbow extension (C7)", "Wrist extension (C6)", "Finger flexion (C8)", "Grasping (C8/T1)", "Finger abduction (T1)", "Hip flexion (L2)", "Knee extension (L3)", "Ankle dorsiflexion (L4)", "Ankle plantarflexion (S1)", "Big toe extension (L5)"];
-
+const mpItems = [
+    "Neck Flex/Ext",
+    "Shoulder Abd (C5)",
+    "Elbow Flex (C6)",
+    "Elbow Ext (C7)",
+    "Wrist Flex (C7)",
+    "Wrist Ext (C6)",
+    "Finger Flex (C8)",
+    "Finger Ext (C7)",
+    "Grasping (C8/T1)",
+    "Finger Abd/Add (T1)",
+    "Hip Flex (L2)",
+    "Knee Flex (S2)",
+    "Knee Ext (L3)",
+    "Ankle Dorsi (L4)",
+    "Ankle Plantar (S1)",
+    "Big Toe Ext (L5)"
+];
+    
 // --- 初始化函數 ---
 function init() {
     const cnBox = document.getElementById('cn-container');
@@ -442,15 +459,18 @@ function generateText() {
     t += `CN XI:  Sternocleidomastoid: weakness(${getCN('weakness')}), atrophy(${getCN('atrophy')}); Trapezius: weakness(${getCN('weakness')}), atrophy(${getCN('atrophy')})\n`;
     t += `CN XII: Tongue: deviation(${getCN('deviation')}), atrophy(${getCN('atrophy')}), fasciculation(${getCN('fasciculation')})\n\n`;
 
-    t += `*Motor\n`;
+t += `*Motor\n`;
     t += `Motor inspection: ${document.getElementById('v-motor-ins').value}\n`;
     t += `Muscle tone: ${document.getElementById('v-motor-tone').value}\n`;
     t += `Muscle power:(R/L)\n`;
-    t += ` Neck flexion/extension: ${getMP(0)}; Shoulder abduction: ${getMP(1)}\n`;
-    t += ` Elbow flexion/extension: ${getMP(2)}/${getMP(3)}; Wrist extension: ${getMP(4)}\n`;
-    t += ` Finger flexion/Grasp/abduction: ${getMP(5)}/${getMP(6)}/${getMP(7)}\n`;
-    t += ` Hip flexion: ${getMP(8)}; Knee extension: ${getMP(9)}\n`;
-    t += ` Ankle dorsiflexion/plantarflexion: ${getMP(10)}/${getMP(11)}; Big toe extension: ${getMP(12)}\n\n`;
+    t += ` Neck Flex/Ext: ${getMP(0)}; Shoulder Abd(C5): ${getMP(1)}\n`;
+    t += ` Elbow Flex(C6): ${getMP(2)} / Ext(C7): ${getMP(3)}\n`;
+    t += ` Wrist Flex(C7): ${getMP(4)} / Ext(C6): ${getMP(5)}\n`;
+    t += ` Finger Flex(C8): ${getMP(6)} / Ext(C7): ${getMP(7)}\n`;
+    t += ` Grasping(C8/T1): ${getMP(8)}; Finger Abd/Add(T1): ${getMP(9)}\n`;
+    t += ` Hip Flex(L2): ${getMP(10)}; Knee Flex(S2): ${getMP(11)} / Ext(L3): ${getMP(12)}\n`;
+    t += ` Ankle Dorsi(L4): ${getMP(13)} / Plantar(S1): ${getMP(14)}\n`;
+    t += ` Big Toe Ext(L5): ${getMP(15)}\n\n`;
 
     t += `*Reflex (R/L)\n`;
     t += ` Biceps(C5/6): ${getRef(0)}; Triceps(C7): ${getRef(1)}; Brachioradialis(C5/6): ${getRef(2)}\n`;
